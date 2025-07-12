@@ -1,0 +1,11 @@
+pyarrow
+pandas
+Pillow
+matplotlib
+rich
+click
+numpy
+tqdm
+pydantic
+pylance
+psutil

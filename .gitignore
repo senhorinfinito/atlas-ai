@@ -1,0 +1,7 @@
+build/
+outputs/
+temp_data/
+**.zip
+temp_extract/
+.venv
+build
