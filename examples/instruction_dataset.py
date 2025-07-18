@@ -55,7 +55,7 @@ os.makedirs(os.path.dirname(lance_path_hf), exist_ok=True)
 
 # 3. Sink the dataset to a Lance dataset
 print(f"Sinking dataset to {lance_path_hf}...")
-atlas.sink(dataset, lance_path_hf, mode="overwrite", options={"task": "instruction", "format": "instruction"})
+atlas.sink(dataset, lance_path_hf, mode="overwrite", task="instruction")
 
 # 4. Verify that the dataset was created and is not empty
 print("Verifying dataset...")

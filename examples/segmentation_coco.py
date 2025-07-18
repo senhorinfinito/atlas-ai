@@ -77,11 +77,9 @@ print(f"Sinking COCO segmentation dataset to {lance_path}...")
 atlas.sink(
     small_json_path,
     lance_path,
-    options={
-        "task": "segmentation",
-        "format": "coco",
-        "image_root": "examples/data/coco/images",
-    },
+    task="segmentation",
+    format="coco",
+    image_root="examples/data/coco/images",
 )
 
 # Visualize some samples from the dataset

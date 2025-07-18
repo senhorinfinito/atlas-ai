@@ -28,7 +28,8 @@ if DATASET_URL:
 atlas.sink(
     data_dir,
     "examples/data/yolo.lance",
-    options={"task": "object_detection", "format": "yolo"},
+    task="object_detection",
+    format="yolo",
 )
 
 # Visualize some samples from the dataset

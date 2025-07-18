@@ -76,94 +76,110 @@ def infer_dataset_type(data: str) -> Tuple[Optional[str], Optional[str]]:
     return None, None
 
 
-def create_dataset(data: str, options: Optional[Dict[str, Any]] = None) -> BaseDataset:
+def create_dataset(
+    data: str,
+    task: Optional[str] = None,
+    format: Optional[str] = None,
+    **kwargs,
+) -> BaseDataset:
     """
     Factory function to create a dataset object based on the given options.
 
     Args:
         data (str): The data source.
-        options (Optional[Dict[str, Any]], optional): A dictionary of options for creating
-            the dataset. Defaults to None.
+        task (Optional[str], optional): The task for which the data is being sunk.
+        format (Optional[str], optional): The format of the data.
+        **kwargs: Additional options for creating the dataset.
 
     Returns:
         BaseDataset: A dataset object.
     """
-    if options is None:
-        options = {}
-
-    task = options.get("task")
-    format = options.get("format")
-
-    if not isinstance(data, str): # Hugging Face dataset
+    if not isinstance(data, str):  # Hugging Face dataset
         if task == "instruction":
             from atlas.tasks.instruction.instruction import InstructionDataset
+
             return InstructionDataset(data)
         elif task == "ranking":
             from atlas.tasks.ranking.ranking import RankingDataset
+
             return RankingDataset(data)
         elif task == "paired_text":
             from atlas.tasks.paired_text.paired_text import PairedTextDataset
+
             return PairedTextDataset(data)
         elif task == "similarity":
             from atlas.tasks.similarity.similarity import SimilarityDataset
+
             return SimilarityDataset(data)
         elif task == "cot":
             from atlas.tasks.cot.cot import CoTDataset
+
             return CoTDataset(data)
 
     if not task or not format:
         inferred_task, inferred_format = infer_dataset_type(data)
         task = task or inferred_task
         format = format or inferred_format
-        options["task"] = task
-        options["format"] = format
-
 
     if task == "object_detection":
         if format == "coco":
             from atlas.tasks.object_detection.coco import CocoDataset
-            return CocoDataset(data, options)
+
+            return CocoDataset(data, **kwargs)
         elif format == "yolo":
             from atlas.tasks.object_detection.yolo import YoloDataset
-            return YoloDataset(data, options)
+
+            return YoloDataset(data, **kwargs)
     elif task == "segmentation":
         if format == "coco":
             from atlas.tasks.segmentation.coco import CocoSegmentationDataset
-            return CocoSegmentationDataset(data, options)
+
+            return CocoSegmentationDataset(data, **kwargs)
     elif task == "tabular":
         if format == "csv":
             from atlas.tasks.tabular.csv import CsvDataset
+
             return CsvDataset(data)
         elif format == "parquet":
             from atlas.tasks.tabular.parquet import ParquetDataset
+
             return ParquetDataset(data)
     elif task == "text":
         if format == "text":
             from atlas.tasks.text.text import TextDataset
+
             return TextDataset(data)
     elif task == "instruction":
         if format == "instruction":
             from atlas.tasks.instruction.instruction import InstructionDataset
+
             return InstructionDataset(data)
     elif task == "ranking":
         if format == "ranking":
             from atlas.tasks.ranking.ranking import RankingDataset
+
             return RankingDataset(data)
     elif task == "vision_language":
         if format == "vision_language":
-            from atlas.tasks.vision_language.vision_language import VisionLanguageDataset
+            from atlas.tasks.vision_language.vision_language import (
+                VisionLanguageDataset,
+            )
+
             return VisionLanguageDataset(data)
     elif task == "cot":
         if format == "cot":
             from atlas.tasks.cot.cot import CoTDataset
+
             return CoTDataset(data)
     elif task == "paired_text":
         if format == "paired_text":
             from atlas.tasks.paired_text.paired_text import PairedTextDataset
+
             return PairedTextDataset(data)
     elif task == "similarity":
         if format == "similarity":
             from atlas.tasks.similarity.similarity import SimilarityDataset
+
             return SimilarityDataset(data)
 
-    raise ValueError(f"Unsupported data format or task: {data}, {options}")
+    raise ValueError(f"Unsupported data format or task: {data}, {task}, {format}")

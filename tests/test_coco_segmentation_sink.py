@@ -54,7 +54,7 @@ class CocoSegmentationSinkTest(unittest.TestCase):
             shutil.rmtree(self.image_dir)
 
     def test_sink_coco_segmentation(self):
-        sink(self.coco_path, self.lance_path, options={"task": "segmentation", "format": "coco"})
+        sink(self.coco_path, self.lance_path, task="segmentation", format="coco")
         dataset = lance.dataset(self.lance_path)
         self.assertEqual(dataset.count_rows(), 1)
         table = dataset.to_table()

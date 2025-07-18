@@ -25,7 +25,7 @@ lance_path_file = "examples/data/similarity_file.lance"
 
 # 2. Sink the JSONL file to a Lance dataset
 print(f"Sinking {jsonl_path} to {lance_path_file}...")
-atlas.sink(jsonl_path, lance_path_file, mode="overwrite", options={"task": "similarity", "format": "similarity"})
+atlas.sink(jsonl_path, lance_path_file, mode="overwrite", task="similarity")
 
 # 3. Verify that the dataset was created and is not empty
 print("Verifying dataset...")
@@ -66,7 +66,7 @@ def data_generator():
 
 # 4. Sink the dataset to a Lance dataset
 print(f"Sinking dataset to {lance_path_hf}...")
-atlas.sink(data_generator(), lance_path_hf, mode="overwrite", options={"task": "similarity", "format": "similarity"})
+atlas.sink(data_generator(), lance_path_hf, mode="overwrite", task="similarity")
 
 # 5. Verify that the dataset was created and is not empty
 print("Verifying dataset...")

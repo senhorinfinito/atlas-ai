@@ -69,7 +69,7 @@ def data_generator():
 
 # 4. Sink the dataset to a Lance dataset
 print(f"Sinking dataset to {lance_path_hf}...")
-atlas.sink(data_generator(), lance_path_hf, mode="overwrite", options={"task": "cot", "format": "cot"})
+atlas.sink(data_generator(), lance_path_hf, mode="overwrite", task="cot")
 
 # 5. Verify that the dataset was created and is not empty
 print("Verifying dataset...")

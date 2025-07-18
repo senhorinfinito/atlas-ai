@@ -43,21 +43,21 @@ class YoloSinkTest(unittest.TestCase):
         with open(os.path.join(self.yolo_dir, "data.yaml"), "w") as f:
             yaml.dump({"names": ["class0", "class1", "class2"]}, f)
 
-        sink(self.yolo_dir, self.lance_path, options={"task": "object_detection", "format": "yolo"})
+        sink(self.yolo_dir, self.lance_path, task="object_detection", format="yolo")
         dataset = lance.dataset(self.lance_path)
         self.assertEqual(dataset.count_rows(), 3)
         metadata = BaseDataset.get_metadata(self.lance_path)
         self.assertEqual(metadata.class_names, {0: "class0", 1: "class1", 2: "class2"})
 
     def test_sink_yolo_without_data_yaml(self):
-        sink(self.yolo_dir, self.lance_path, options={"task": "object_detection", "format": "yolo"})
+        sink(self.yolo_dir, self.lance_path, task="object_detection", format="yolo")
         dataset = lance.dataset(self.lance_path)
         self.assertEqual(dataset.count_rows(), 3)
         metadata = BaseDataset.get_metadata(self.lance_path)
         self.assertEqual(metadata.class_names, {0: "0", 1: "1", 2: "2"})
 
     def test_sink_yolo(self):
-        sink(self.yolo_dir, self.lance_path, options={"task": "object_detection", "format": "yolo"})
+        sink(self.yolo_dir, self.lance_path, task="object_detection", format="yolo")
         dataset = lance.dataset(self.lance_path)
         self.assertEqual(dataset.count_rows(), 3)
         table = dataset.to_table()

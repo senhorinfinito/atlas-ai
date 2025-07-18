@@ -55,7 +55,7 @@ os.makedirs(os.path.dirname(lance_path_hf), exist_ok=True)
 
 # 3. Sink the ranking dataset to a Lance dataset
 print(f"Sinking dataset to {lance_path_hf}...")
-atlas.sink(dataset, lance_path_hf, mode="overwrite", options={"task": "ranking", "format": "ranking"})
+atlas.sink(dataset, lance_path_hf, mode="overwrite", task="ranking")
 
 # 4. Verify that the dataset was created and is not empty
 lance_dataset_hf = lance.dataset(lance_path_hf)

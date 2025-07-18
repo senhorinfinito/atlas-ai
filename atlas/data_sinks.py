@@ -28,8 +28,10 @@ from datasets import Dataset
 def sink(
     data: Union[str, BaseDataset, Dataset],
     uri: Optional[str] = None,
+    task: Optional[str] = None,
+    format: Optional[str] = None,
     mode: str = "overwrite",
-    options: Optional[Dict[str, Any]] = None,
+    **kwargs,
 ):
     """
     Sinks data from a given source to a specified destination in Lance format.
@@ -41,28 +43,27 @@ def sink(
     Args:
         data (Union[str, BaseDataset, Dataset]): The data to be sunk.
         uri (str): The destination URI where the Lance dataset will be created.
-        options (Optional[Dict[str, Any]], optional): A dictionary of options for the sink
-            operation. The available options depend on the data source. For example, when
-            sinking a COCO dataset, you can specify the `task` and `format` in the
-            options. Defaults to None.
+        task (Optional[str], optional): The task for which the data is being sunk.
+            For example, `object_detection`, `image_classification`, etc.
+        format (Optional[str], optional): The format of the data. For example, `coco`,
+            `yolo`, `csv`, etc.
+        mode (str, optional): The mode for writing the data. Defaults to "overwrite".
+        **kwargs: Additional options for the sink operation.
     """
-    if options is None:
-        options = {}
+    if isinstance(data, Dataset) and task is None:
+        raise ValueError(
+            "The `task` argument is mandatory when sinking a Hugging Face Dataset."
+        )
 
     if isinstance(data, str):
         if uri is None:
             uri = f"{os.path.splitext(data)[0]}.lance"
-        dataset = create_dataset(data, options)
-    elif isinstance(data, Dataset) or (hasattr(data, '__iter__') and hasattr(data, '__next__')):
-        dataset = create_dataset(data, options)
+        dataset = create_dataset(data, task=task, format=format, **kwargs)
+    elif isinstance(data, Dataset) or (
+        hasattr(data, "__iter__") and hasattr(data, "__next__")
+    ):
+        dataset = create_dataset(data, task=task, format=format, **kwargs)
     else:
         dataset = data
 
-    lance_options = options.copy()
-    if "task" in lance_options:
-        del lance_options["task"]
-    if "format" in lance_options:
-        del lance_options["format"]
-
-    image_root = lance_options.pop("image_root", None)
-    dataset.to_lance(uri, mode=mode,  **lance_options)
+    dataset.to_lance(uri, mode=mode, **kwargs)

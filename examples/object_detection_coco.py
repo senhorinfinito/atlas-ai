@@ -79,11 +79,9 @@ atlas.sink(
     small_json_path,
     lance_path,
     mode="overwrite",
-    options={
-        "task": "object_detection",
-        "format": "coco",
-        "image_root": "examples/data/coco/images",
-    },
+    task="object_detection",
+    format="coco",
+    image_root="examples/data/coco/images",
 )
 
 # Visualize some samples from the dataset
