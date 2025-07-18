@@ -29,9 +29,8 @@ class YoloDataset(BaseDataset):
     A dataset that reads data from a YOLO detection file.
     """
 
-    def __init__(self, data: str, options: dict = None):
+    def __init__(self, data: str, **kwargs):
         super().__init__(data)
-        self.options = options or {}
 
     def _load_yolo_metadata(self, max_class_id: int = 0):
         """

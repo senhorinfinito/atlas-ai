@@ -28,11 +28,9 @@ class CocoDataset(BaseDataset):
     A dataset that reads data from a COCO JSON file.
     """
 
-    def __init__(self, data: str, options: dict = None):
-
+    def __init__(self, data: str, **kwargs):
         super().__init__(data)
-        self.options = options or {}
-        self.image_root = self.options.get("image_root")
+        self.image_root = kwargs.get("image_root")
         if self.image_root is None:
             self.image_root = self._infer_image_root()
 
