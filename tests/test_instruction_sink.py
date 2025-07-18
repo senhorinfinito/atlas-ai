@@ -28,7 +28,7 @@ class InstructionSinkTest(unittest.TestCase):
         dataset = lance.dataset(self.lance_path)
         self.assertEqual(dataset.count_rows(), 3)
         table = dataset.to_table()
-        self.assertEqual(table.column_names, ["instruction", "input", "output"])
+        self.assertEqual(table.column_names, ["instruction", "input", "output", "response"])
         self.assertEqual(table.column("instruction").to_pylist(), ["i1", "i2", "i3"])
         self.assertEqual(table.column("input").to_pylist(), ["i1", "i2", "i3"])
         self.assertEqual(table.column("output").to_pylist(), ["o1", "o2", "o3"])
