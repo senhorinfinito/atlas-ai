@@ -130,6 +130,69 @@ atlas sink examples/data/dummy.csv
 
 </details>
 
+<details>
+<summary>Text</summary>
+
+```bash
+atlas sink examples/data/dummy.txt
+```
+
+</details>
+
+<details>
+<summary>Instruction</summary>
+
+```bash
+atlas sink examples/data/dummy.jsonl
+```
+
+</details>
+
+<details>
+<summary>Embedding</summary>
+
+```bash
+atlas sink examples/data/dummy.parquet
+```
+
+</details>
+
+<details>
+<summary>Ranking</summary>
+
+```bash
+atlas sink examples/data/dummy_ranking.jsonl
+```
+
+</details>
+
+<details>
+<summary>Vision-Language</summary>
+
+```bash
+atlas sink examples/data/dummy_vl.jsonl
+```
+
+</details>
+
+<details>
+<summary>Chain of Thought</summary>
+
+```bash
+atlas sink examples/data/dummy_cot.jsonl
+```
+
+</details>
+
+<details>
+<summary>Paired Text</summary>
+
+```bash
+atlas sink examples/data/stsb_train.jsonl
+```
+
+</details>
+
 ### Python API
 
 The `atlas` Python API provides more control and flexibility for advanced use cases.
@@ -164,6 +227,69 @@ atlas.sink("examples/data/coco/annotations/instances_val2017_small.json", option
 ```python
 import atlas
 atlas.sink("examples/data/dummy.csv")
+```
+</details>
+
+<details>
+<summary>Text</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy.txt")
+```
+</details>
+
+<details>
+<summary>Instruction</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy.jsonl")
+```
+</details>
+
+<details>
+<summary>Embedding</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy.parquet")
+```
+</details>
+
+<details>
+<summary>Ranking</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy_ranking.jsonl")
+```
+</details>
+
+<details>
+<summary>Vision-Language</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy_vl.jsonl")
+```
+</details>
+
+<details>
+<summary>Chain of Thought</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy_cot.jsonl")
+```
+</details>
+
+<details>
+<summary>Paired Text</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/stsb_train.jsonl")
 ```
 </details>
 

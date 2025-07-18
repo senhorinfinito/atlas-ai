@@ -15,8 +15,11 @@
 # limitations under the License.
 
 import os
+import json
 from typing import Any, Dict, Optional, Tuple
 
+import pyarrow.parquet as pq
+import pyarrow as pa
 
 from atlas.tasks.data_model.base import BaseDataset
 
@@ -50,6 +53,25 @@ def infer_dataset_type(data: str) -> Tuple[Optional[str], Optional[str]]:
     elif data.endswith(".json"):
         # A json file could be a COCO dataset
         return "object_detection", "coco"
+    elif data.endswith(".txt"):
+        return "text", "text"
+    elif data.endswith(".jsonl"):
+        with open(data, "r") as f:
+            first_line = f.readline()
+            try:
+                record = json.loads(first_line)
+                if "query" in record and "documents" in record:
+                    return "ranking", "ranking"
+                elif "instruction" in record and "output" in record:
+                    return "instruction", "instruction"
+                elif "image" in record and "text" in record:
+                    return "vision_language", "vision_language"
+                elif "question" in record and "thought" in record and "answer" in record:
+                    return "cot", "cot"
+                elif "sentence1" in record and "sentence2" in record and "label" in record:
+                    return "paired_text", "paired_text"
+            except json.JSONDecodeError:
+                pass  # Not a valid jsonl file
 
     return None, None
 
@@ -71,6 +93,23 @@ def create_dataset(data: str, options: Optional[Dict[str, Any]] = None) -> BaseD
 
     task = options.get("task")
     format = options.get("format")
+
+    if not isinstance(data, str): # Hugging Face dataset
+        if task == "instruction":
+            from atlas.tasks.instruction.instruction import InstructionDataset
+            return InstructionDataset(data)
+        elif task == "ranking":
+            from atlas.tasks.ranking.ranking import RankingDataset
+            return RankingDataset(data)
+        elif task == "paired_text":
+            from atlas.tasks.paired_text.paired_text import PairedTextDataset
+            return PairedTextDataset(data)
+        elif task == "similarity":
+            from atlas.tasks.similarity.similarity import SimilarityDataset
+            return SimilarityDataset(data)
+        elif task == "cot":
+            from atlas.tasks.cot.cot import CoTDataset
+            return CoTDataset(data)
 
     if not task or not format:
         inferred_task, inferred_format = infer_dataset_type(data)
@@ -98,5 +137,33 @@ def create_dataset(data: str, options: Optional[Dict[str, Any]] = None) -> BaseD
         elif format == "parquet":
             from atlas.tasks.tabular.parquet import ParquetDataset
             return ParquetDataset(data)
+    elif task == "text":
+        if format == "text":
+            from atlas.tasks.text.text import TextDataset
+            return TextDataset(data)
+    elif task == "instruction":
+        if format == "instruction":
+            from atlas.tasks.instruction.instruction import InstructionDataset
+            return InstructionDataset(data)
+    elif task == "ranking":
+        if format == "ranking":
+            from atlas.tasks.ranking.ranking import RankingDataset
+            return RankingDataset(data)
+    elif task == "vision_language":
+        if format == "vision_language":
+            from atlas.tasks.vision_language.vision_language import VisionLanguageDataset
+            return VisionLanguageDataset(data)
+    elif task == "cot":
+        if format == "cot":
+            from atlas.tasks.cot.cot import CoTDataset
+            return CoTDataset(data)
+    elif task == "paired_text":
+        if format == "paired_text":
+            from atlas.tasks.paired_text.paired_text import PairedTextDataset
+            return PairedTextDataset(data)
+    elif task == "similarity":
+        if format == "similarity":
+            from atlas.tasks.similarity.similarity import SimilarityDataset
+            return SimilarityDataset(data)
 
     raise ValueError(f"Unsupported data format or task: {data}, {options}")

@@ -22,10 +22,11 @@ import pyarrow as pa
 
 from atlas.tasks.data_model.base import BaseDataset
 from atlas.tasks.data_model.factory import create_dataset
+from datasets import Dataset
 
 
 def sink(
-    data: Union[str, BaseDataset],
+    data: Union[str, BaseDataset, Dataset],
     uri: Optional[str] = None,
     mode: str = "overwrite",
     options: Optional[Dict[str, Any]] = None,
@@ -35,11 +36,10 @@ def sink(
 
     This function provides a high-level API for converting and sinking data from various
     sources into a Lance dataset. The source can be a file path (e.g., a CSV file, a
-    COCO annotation file) or a `BaseDataset` object.
+    COCO annotation file), a `BaseDataset` object, or a Hugging Face `Dataset` object.
 
     Args:
-        data (Union[str, BaseDataset]): The data to be sunk. This can be a file path (str)
-            or a `BaseDataset` object.
+        data (Union[str, BaseDataset, Dataset]): The data to be sunk.
         uri (str): The destination URI where the Lance dataset will be created.
         options (Optional[Dict[str, Any]], optional): A dictionary of options for the sink
             operation. The available options depend on the data source. For example, when
@@ -52,6 +52,8 @@ def sink(
     if isinstance(data, str):
         if uri is None:
             uri = f"{os.path.splitext(data)[0]}.lance"
+        dataset = create_dataset(data, options)
+    elif isinstance(data, Dataset) or (hasattr(data, '__iter__') and hasattr(data, '__next__')):
         dataset = create_dataset(data, options)
     else:
         dataset = data
