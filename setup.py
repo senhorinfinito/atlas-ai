@@ -22,4 +22,7 @@ setup(
         'datasets',
         'torchcodec'
     ],
+    extras_require={
+        'audio': ['soundfile']
+    },
 )

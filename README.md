@@ -74,6 +74,12 @@ Then, install Atlas using pip:
 pip install atlas-ai
 ```
 
+For audio datasets, you will need to install the `soundfile` dependency. You can do this by running:
+```bash
+pip install atlas-ai[audio]
+```
+
+
 ## Usage
 
 ### CLI
