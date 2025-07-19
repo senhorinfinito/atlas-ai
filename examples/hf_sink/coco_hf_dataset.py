@@ -71,6 +71,7 @@ print(table.schema)
 # Clean up
 shutil.rmtree(output_dir)
 
+import os
 # fix the need for this
-exit()
+os._exit(0)
 
