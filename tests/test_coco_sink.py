@@ -50,7 +50,7 @@ class CocoSinkTest(unittest.TestCase):
             shutil.rmtree(self.image_dir)
 
     def test_sink_coco(self):
-        sink(self.coco_path, self.lance_path, options={"task": "object_detection", "format": "coco"})
+        sink(self.coco_path, self.lance_path, task="object_detection", format="coco")
         dataset = lance.dataset(self.lance_path)
         self.assertEqual(dataset.count_rows(), 3)
         table = dataset.to_table()

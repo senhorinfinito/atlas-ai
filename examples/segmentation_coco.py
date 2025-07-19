@@ -4,6 +4,9 @@ import requests
 import zipfile
 import json
 from PIL import Image
+import lance
+
+print("--- Running segmentation COCO sinking example ---")
 
 # Create a temporary directory to store the data
 if not os.path.exists("examples/data/coco/images"):
@@ -15,6 +18,7 @@ annotations_dir = "examples/data/coco/annotations"
 annotations_url = "http://images.cocodataset.org/annotations/annotations_trainval2017.zip"
 
 if not os.path.exists(annotations_zip_path):
+    print(f"Downloading COCO annotations from {annotations_url}...")
     response = requests.get(annotations_url, stream=True)
     with open(annotations_zip_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=128):
@@ -23,6 +27,7 @@ else:
     print(f"{annotations_zip_path} already exists, skipping download.")
 
 if not os.path.exists(annotations_dir):
+    print(f"Extracting COCO annotations to {annotations_dir}...")
     with zipfile.ZipFile(annotations_zip_path, "r") as zip_ref:
         zip_ref.extractall("examples/data/coco")
 else:
@@ -58,6 +63,7 @@ for img in filtered_data["images"]:
     image_path = f"examples/data/coco/images/{file_name}"
     image_url = f"http://images.cocodataset.org/val2017/{file_name}"
     if not os.path.exists(image_path):
+        print(f"Downloading image {file_name} from {image_url}...")
         response = requests.get(image_url, stream=True)
         with open(image_path, "wb") as f_img:
             for chunk in response.iter_content(chunk_size=128):
@@ -66,22 +72,24 @@ for img in filtered_data["images"]:
         print(f"{image_path} already exists, skipping download.")
 
 # Sink the COCO dataset to a Lance dataset
+lance_path = "examples/data/coco_segmentation.lance"
+print(f"Sinking COCO segmentation dataset to {lance_path}...")
 atlas.sink(
-    "examples/data/coco/annotations/instances_val2017_small.json",
-    "examples/data/coco_segmentation.lance",
-    options={
-        "task": "segmentation",
-        "format": "coco",
-        "image_root": "examples/data/coco/images",
-    },
+    small_json_path,
+    lance_path,
+    task="segmentation",
+    format="coco",
+    image_root="examples/data/coco/images",
 )
 
 # Visualize some samples from the dataset
-atlas.visualize("examples/data/coco_segmentation.lance", num_samples=5, output_file="examples/data/coco_segmentation_visualization.png")
+visualization_path = "examples/data/coco_segmentation_visualization.png"
+print(f"Visualizing dataset and saving to {visualization_path}...")
+atlas.visualize(lance_path, num_samples=5, output_file=visualization_path)
 
 # Verify that the dataset was created and is not empty
-import lance
-dataset = lance.dataset("examples/data/coco_segmentation.lance")
+print("Verifying dataset...")
+dataset = lance.dataset(lance_path)
 assert dataset.count_rows() == len(new_data["images"]), "The number of rows in the dataset does not match the number of images"
 
 # Verify the contents of the dataset
@@ -95,4 +103,6 @@ for i, row in enumerate(table.to_pydict()["image"]):
     assert len(table.to_pydict()["mask"][i]) > 0, "Mask is empty"
 
 # Verify that the visualization was created
-assert os.path.exists("examples/data/coco_segmentation_visualization.png"), "The visualization was not created"
+assert os.path.exists(visualization_path), "The visualization was not created"
+
+print("Segmentation COCO sinking example executed successfully.")

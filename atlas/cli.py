@@ -7,7 +7,7 @@ def main():
 @main.command()
 @click.argument('data', type=click.Path(exists=True))
 @click.argument('uri', required=False)
-@click.option('--task', help="The task type (e.g., 'object_detection', 'segmentation').")
+@click.option('--task', help="The task type (e.g., 'object_detection', 'segmentation', 'hf').")
 @click.option('--format', help="The data format (e.g., 'coco', 'yolo').")
 def sink(data, uri, task, format):
     """

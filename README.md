@@ -130,6 +130,85 @@ atlas sink examples/data/dummy.csv
 
 </details>
 
+### Sinking from Hugging Face Datasets
+
+For text-based tasks, it is recommended to sink directly from a Hugging Face dataset. This will sink the entire dataset, preserving the original schema.
+
+```python
+from datasets import load_dataset
+import atlas
+
+dataset = load_dataset("glue", "mrpc", split="train")
+atlas.sink(dataset, "mrpc.lance")
+```
+
+<details>
+<summary>But if you want to use our task based sinks, you can use these dedicated sinks</summary>
+
+<details>
+<summary>Text</summary>
+
+```bash
+atlas sink examples/data/dummy.txt
+```
+
+</details>
+
+<details>
+<summary>Instruction</summary>
+
+```bash
+atlas sink examples/data/dummy.jsonl
+```
+
+</details>
+
+<details>
+<summary>Embedding</summary>
+
+```bash
+atlas sink examples/data/dummy.parquet
+```
+
+</details>
+
+<details>
+<summary>Ranking</summary>
+
+```bash
+atlas sink examples/data/dummy_ranking.jsonl
+```
+
+</details>
+
+<details>
+<summary>Vision-Language</summary>
+
+```bash
+atlas sink examples/data/dummy_vl.jsonl
+```
+
+</details>
+
+<details>
+<summary>Chain of Thought</summary>
+
+```bash
+atlas sink examples/data/dummy_cot.jsonl
+```
+
+</details>
+
+<details>
+<summary>Paired Text</summary>
+
+```bash
+atlas sink examples/data/stsb_train.jsonl
+```
+
+</details>
+</details>
+
 ### Python API
 
 The `atlas` Python API provides more control and flexibility for advanced use cases.
@@ -165,6 +244,70 @@ atlas.sink("examples/data/coco/annotations/instances_val2017_small.json", option
 import atlas
 atlas.sink("examples/data/dummy.csv")
 ```
+</details>
+
+<details>
+<summary>Text</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy.txt")
+```
+</details>
+
+<details>
+<summary>Instruction</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy.jsonl")
+```
+</details>
+
+<details>
+<summary>Embedding</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy.parquet")
+```
+</details>
+
+<details>
+<summary>Ranking</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy_ranking.jsonl")
+```
+</details>
+
+<details>
+<summary>Vision-Language</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy_vl.jsonl")
+```
+</details>
+
+<details>
+<summary>Chain of Thought</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/dummy_cot.jsonl")
+```
+</details>
+
+<details>
+<summary>Paired Text</summary>
+
+```python
+import atlas
+atlas.sink("examples/data/stsb_train.jsonl")
+```
+</details>
 </details>
 
 <details>

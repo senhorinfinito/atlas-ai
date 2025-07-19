@@ -15,8 +15,11 @@
 # limitations under the License.
 
 import os
-from typing import Any, Dict, Optional, Tuple
+import json
+from typing import Any, Union, Optional, Tuple
 
+import pyarrow.parquet as pq
+import pyarrow as pa
 
 from atlas.tasks.data_model.base import BaseDataset
 
@@ -50,53 +53,137 @@ def infer_dataset_type(data: str) -> Tuple[Optional[str], Optional[str]]:
     elif data.endswith(".json"):
         # A json file could be a COCO dataset
         return "object_detection", "coco"
+    elif data.endswith(".txt"):
+        return "text", "text"
+    elif data.endswith(".jsonl"):
+        with open(data, "r") as f:
+            first_line = f.readline()
+            try:
+                record = json.loads(first_line)
+                if "query" in record and "documents" in record:
+                    return "ranking", "ranking"
+                elif "instruction" in record and "output" in record:
+                    return "instruction", "instruction"
+                elif "image" in record and "text" in record:
+                    return "vision_language", "vision_language"
+                elif "question" in record and "thought" in record and "answer" in record:
+                    return "cot", "cot"
+                elif "sentence1" in record and "sentence2" in record and "label" in record:
+                    return "paired_text", "paired_text"
+            except json.JSONDecodeError:
+                pass  # Not a valid jsonl file
 
     return None, None
 
 
-def create_dataset(data: str, options: Optional[Dict[str, Any]] = None) -> BaseDataset:
+def create_dataset(
+    data: Union[str, Any],
+    task: Optional[str] = None,
+    format: Optional[str] = None,
+    **kwargs,
+) -> BaseDataset:
     """
     Factory function to create a dataset object based on the given options.
 
     Args:
         data (str): The data source.
-        options (Optional[Dict[str, Any]], optional): A dictionary of options for creating
-            the dataset. Defaults to None.
+        task (Optional[str], optional): The task for which the data is being sunk.
+        format (Optional[str], optional): The format of the data.
+        **kwargs: Additional options for creating the dataset.
 
     Returns:
         BaseDataset: A dataset object.
     """
-    if options is None:
-        options = {}
+    if not isinstance(data, str):  # Hugging Face dataset
+        if task == "instruction":
+            from atlas.tasks.instruction.instruction import InstructionDataset
 
-    task = options.get("task")
-    format = options.get("format")
+            return InstructionDataset(data)
+        elif task == "ranking":
+            from atlas.tasks.ranking.ranking import RankingDataset
+
+            return RankingDataset(data)
+        elif task == "paired_text":
+            from atlas.tasks.paired_text.paired_text import PairedTextDataset
+
+            return PairedTextDataset(data)
+        elif task == "similarity":
+            from atlas.tasks.similarity.similarity import SimilarityDataset
+
+            return SimilarityDataset(data)
+        elif task == "cot":
+            from atlas.tasks.cot.cot import CoTDataset
+
+            return CoTDataset(data)
+        elif task == "hf":
+            from atlas.tasks.hf.hf import HFDataset
+
+            return HFDataset(data)
 
     if not task or not format:
         inferred_task, inferred_format = infer_dataset_type(data)
         task = task or inferred_task
         format = format or inferred_format
-        options["task"] = task
-        options["format"] = format
-
 
     if task == "object_detection":
         if format == "coco":
             from atlas.tasks.object_detection.coco import CocoDataset
-            return CocoDataset(data, options)
+
+            return CocoDataset(data, **kwargs)
         elif format == "yolo":
             from atlas.tasks.object_detection.yolo import YoloDataset
-            return YoloDataset(data, options)
+
+            return YoloDataset(data, **kwargs)
     elif task == "segmentation":
         if format == "coco":
             from atlas.tasks.segmentation.coco import CocoSegmentationDataset
-            return CocoSegmentationDataset(data, options)
+
+            return CocoSegmentationDataset(data, **kwargs)
     elif task == "tabular":
         if format == "csv":
             from atlas.tasks.tabular.csv import CsvDataset
+
             return CsvDataset(data)
         elif format == "parquet":
             from atlas.tasks.tabular.parquet import ParquetDataset
-            return ParquetDataset(data)
 
-    raise ValueError(f"Unsupported data format or task: {data}, {options}")
+            return ParquetDataset(data)
+    elif task == "text":
+        if format == "text":
+            from atlas.tasks.text.text import TextDataset
+
+            return TextDataset(data)
+    elif task == "instruction":
+        if format == "instruction":
+            from atlas.tasks.instruction.instruction import InstructionDataset
+
+            return InstructionDataset(data)
+    elif task == "ranking":
+        if format == "ranking":
+            from atlas.tasks.ranking.ranking import RankingDataset
+
+            return RankingDataset(data)
+    elif task == "vision_language":
+        if format == "vision_language":
+            from atlas.tasks.vision_language.vision_language import (
+                VisionLanguageDataset,
+            )
+
+            return VisionLanguageDataset(data)
+    elif task == "cot":
+        if format == "cot":
+            from atlas.tasks.cot.cot import CoTDataset
+
+            return CoTDataset(data)
+    elif task == "paired_text":
+        if format == "paired_text":
+            from atlas.tasks.paired_text.paired_text import PairedTextDataset
+
+            return PairedTextDataset(data)
+    elif task == "similarity":
+        if format == "similarity":
+            from atlas.tasks.similarity.similarity import SimilarityDataset
+
+            return SimilarityDataset(data)
+
+    raise ValueError(f"Unsupported data format or task: {data}, {task}, {format}")

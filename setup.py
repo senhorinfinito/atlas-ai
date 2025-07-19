@@ -18,6 +18,7 @@ setup(
         'psutil',
         'matplotlib',
         'pyyaml',
-        'pycocotools'
+        'pycocotools',
+        'datasets'
     ],
 )

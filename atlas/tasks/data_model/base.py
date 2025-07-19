@@ -95,6 +95,8 @@ class BaseDataset(ABC):
         schema = first_batch.schema
         if self.metadata:
             schema = schema.with_metadata({"metadata": json.dumps(self.metadata.__dict__)})
+        
+        kwargs.pop("image_root", None)
         lance.write_dataset(new_reader(), uri, schema=schema, mode=mode, **kwargs)
 
     @staticmethod

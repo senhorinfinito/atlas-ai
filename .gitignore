@@ -138,3 +138,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Custom ignores for this project
+.DS_Store
+atlas_ai.egg-info/

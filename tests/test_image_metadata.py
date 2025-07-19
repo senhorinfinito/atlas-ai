@@ -34,11 +34,11 @@ class TestImageMetadata(unittest.TestCase):
 
             # create dummy image files
             for image in coco_data["images"]:
-                with open(os.path.join(tmpdir, image["file_name"]), "w") as f:
-                    f.write("")
+                img = Image.new("RGB", (image["width"], image["height"]), color="red")
+                img.save(os.path.join(tmpdir, image["file_name"]))
 
             dataset = CocoDataset(
-                os.path.join(tmpdir, "coco.json"), options={"image_root": tmpdir}
+                os.path.join(tmpdir, "coco.json"), image_root=tmpdir
             )
             for batch in dataset.to_batches():
                 self.assertIn("height", batch.schema.names)
@@ -116,11 +116,11 @@ class TestImageMetadata(unittest.TestCase):
 
             # create dummy image files
             for image in coco_data["images"]:
-                with open(os.path.join(tmpdir, image["file_name"]), "w") as f:
-                    f.write("")
+                img = Image.new("RGB", (image["width"], image["height"]), color="red")
+                img.save(os.path.join(tmpdir, image["file_name"]))
 
             dataset = CocoSegmentationDataset(
-                os.path.join(tmpdir, "coco.json"), options={"image_root": tmpdir}
+                os.path.join(tmpdir, "coco.json"), image_root=tmpdir
             )
             for batch in dataset.to_batches():
                 self.assertIn("height", batch.schema.names)
