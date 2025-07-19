@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os
+import json
 from typing import Any, Dict, Optional, Union
 
 import lance
@@ -25,6 +26,46 @@ from atlas.tasks.data_model.factory import create_dataset
 from datasets import Dataset
 
 
+class LanceDataSink:
+    def __init__(self, path: str, mode: str = "overwrite", **kwargs):
+        self.path = path
+        self.mode = mode
+        self.kwargs = kwargs
+        self._metadata = None
+
+    def write(self, data: Union[str, BaseDataset, Dataset], task: Optional[str] = None, format: Optional[str] = None, **kwargs):
+        if isinstance(data, Dataset) and task is None:
+            task = "hf"
+
+        if isinstance(data, str):
+            dataset = create_dataset(data, task=task, format=format, **kwargs)
+        elif isinstance(data, Dataset) or (
+            hasattr(data, "__iter__") and hasattr(data, "__next__")
+        ):
+            dataset = create_dataset(data, task=task, format=format, **kwargs)
+        else:
+            dataset = data
+        
+        self._metadata = dataset.metadata
+        dataset.to_lance(self.path, mode=self.mode, **self.kwargs)
+
+    def read(self):
+        return lance.dataset(self.path)
+
+    @property
+    def metadata(self):
+        if self._metadata:
+            return self._metadata
+        if os.path.exists(self.path):
+            dataset = lance.dataset(self.path)
+            schema_metadata = dataset.schema.metadata
+            if schema_metadata:
+                self._metadata = {k.decode(): v.decode() for k, v in schema_metadata.items()}
+                if 'decode_meta' in self._metadata:
+                    self._metadata['decode_meta'] = json.loads(self._metadata['decode_meta'])
+        return self._metadata
+
+
 def sink(
     data: Union[str, BaseDataset, Dataset],
     uri: Optional[str] = None,
@@ -33,35 +74,7 @@ def sink(
     mode: str = "overwrite",
     **kwargs,
 ):
-    """
-    Sinks data from a given source to a specified destination in Lance format.
-
-    This function provides a high-level API for converting and sinking data from various
-    sources into a Lance dataset. The source can be a file path (e.g., a CSV file, a
-    COCO annotation file), a `BaseDataset` object, or a Hugging Face `Dataset` object.
-
-    Args:
-        data (Union[str, BaseDataset, Dataset]): The data to be sunk.
-        uri (str): The destination URI where the Lance dataset will be created.
-        task (Optional[str], optional): The task for which the data is being sunk.
-            For example, `object_detection`, `image_classification`, etc.
-        format (Optional[str], optional): The format of the data. For example, `coco`,
-            `yolo`, `csv`, etc.
-        mode (str, optional): The mode for writing the data. Defaults to "overwrite".
-        **kwargs: Additional options for the sink operation.
-    """
-    if isinstance(data, Dataset) and task is None:
-        task = "hf"
-
-    if isinstance(data, str):
-        if uri is None:
-            uri = f"{os.path.splitext(data)[0]}.lance"
-        dataset = create_dataset(data, task=task, format=format, **kwargs)
-    elif isinstance(data, Dataset) or (
-        hasattr(data, "__iter__") and hasattr(data, "__next__")
-    ):
-        dataset = create_dataset(data, task=task, format=format, **kwargs)
-    else:
-        dataset = data
-
-    dataset.to_lance(uri, mode=mode, **kwargs)
+    if not uri:
+        raise ValueError("URI must be specified for the sink operation.")
+    sink = LanceDataSink(path=uri, mode=mode, **kwargs)
+    sink.write(data, task=task, format=format, **kwargs)

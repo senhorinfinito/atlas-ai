@@ -19,6 +19,10 @@ setup(
         'matplotlib',
         'pyyaml',
         'pycocotools',
-        'datasets'
+        'datasets',
+        'torchcodec'
     ],
+    extras_require={
+        'audio': ['soundfile']
+    },
 )

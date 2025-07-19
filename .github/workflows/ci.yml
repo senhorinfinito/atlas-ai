@@ -13,14 +13,21 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install requests
+          pip install -e .[audio] requests
       - name: Run e2e tests
         run: |
           python examples/object_detection_coco.py
           python examples/object_detection_yolo.py
           python examples/segmentation_coco.py
+          python examples/hf_sink/audio_dataset.py
+          python examples/hf_sink/audio_text_dataset.py
+          python examples/hf_sink/coco_hf_dataset.py
+          python examples/hf_sink/hf_nested_expansion_dataset.py
+          python examples/hf_sink/image_dataset.py
+          python examples/hf_sink/image_text_dataset.py
+          python examples/hf_sink/multimodal_dataset.py
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -32,8 +39,9 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install -e .[audio]
           pip install pytest
       - name: Run unit tests
         run: pytest tests/

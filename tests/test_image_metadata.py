@@ -67,13 +67,13 @@ class TestImageMetadata(unittest.TestCase):
                     f.write(f"{i} 0.5 0.5 0.1 0.1")
 
             dataset = YoloDataset(tmpdir)
-            for batch in dataset.to_batches():
-                self.assertIn("height", batch.schema.names)
-                self.assertIn("width", batch.schema.names)
-                self.assertIn("file_name", batch.schema.names)
-                self.assertEqual(batch["height"].to_pylist(), [200, 200])
-                self.assertEqual(batch["width"].to_pylist(), [100, 100])
-                self.assertEqual(batch["file_name"].to_pylist(), ["image0.jpg", "image1.jpg"])
+            batch = next(dataset.to_batches())
+            self.assertIn("height", batch.schema.names)
+            self.assertIn("width", batch.schema.names)
+            self.assertIn("file_name", batch.schema.names)
+            self.assertEqual(batch["height"].to_pylist(), [200, 200])
+            self.assertEqual(batch["width"].to_pylist(), [100, 100])
+            self.assertEqual(batch["file_name"].to_pylist(), ["image0.jpg", "image1.jpg"])
 
     def test_coco_segmentation_metadata(self):
         with tempfile.TemporaryDirectory() as tmpdir:
