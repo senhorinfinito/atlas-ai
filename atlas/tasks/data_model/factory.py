@@ -16,7 +16,7 @@
 
 import os
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Union, Optional, Tuple
 
 import pyarrow.parquet as pq
 import pyarrow as pa
@@ -77,7 +77,7 @@ def infer_dataset_type(data: str) -> Tuple[Optional[str], Optional[str]]:
 
 
 def create_dataset(
-    data: str,
+    data: Union[str, Any],
     task: Optional[str] = None,
     format: Optional[str] = None,
     **kwargs,
@@ -115,6 +115,10 @@ def create_dataset(
             from atlas.tasks.cot.cot import CoTDataset
 
             return CoTDataset(data)
+        elif task == "hf":
+            from atlas.tasks.hf.hf import HFDataset
+
+            return HFDataset(data)
 
     if not task or not format:
         inferred_task, inferred_format = infer_dataset_type(data)

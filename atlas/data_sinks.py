@@ -51,9 +51,7 @@ def sink(
         **kwargs: Additional options for the sink operation.
     """
     if isinstance(data, Dataset) and task is None:
-        raise ValueError(
-            "The `task` argument is mandatory when sinking a Hugging Face Dataset."
-        )
+        task = "hf"
 
     if isinstance(data, str):
         if uri is None:
