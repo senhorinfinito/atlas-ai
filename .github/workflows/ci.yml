@@ -21,6 +21,13 @@ jobs:
           python examples/object_detection_coco.py
           python examples/object_detection_yolo.py
           python examples/segmentation_coco.py
+          python examples/hf_sink/audio_dataset.py
+          python examples/hf_sink/audio_text_dataset.py
+          python examples/hf_sink/coco_hf_dataset.py
+          python examples/hf_sink/hf_nested_expansion_dataset.py
+          python examples/hf_sink/image_dataset.py
+          python examples/hf_sink/image_text_dataset.py
+          python examples/hf_sink/multimodal_dataset.py
 
   unit-tests:
     runs-on: ubuntu-latest

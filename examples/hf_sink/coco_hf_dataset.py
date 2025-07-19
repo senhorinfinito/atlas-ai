@@ -45,6 +45,7 @@ assert pa.types.is_large_binary(table.schema.field("image").type)
 # Verify that the nested 'objects' Sequence was expanded into separate columns
 # The exact names can vary based on the HF dataset, so we check for substrings
 schema_names = table.schema.names
+
 assert any("bbox" in name for name in schema_names)
 assert any("categories" in name for name in schema_names)
 
@@ -55,9 +56,10 @@ assert retrieved_data.count_rows() == 10
 print("\nSuccessfully ingested and verified the dataset with expanded nested columns.")
 print(f"Retrieved {retrieved_data.count_rows()} rows.")
 print("Non-binary columns:")
-for col_name in [name for name in table.schema.names if "image" not in name]:
-    print(f"- {col_name}: {table[col_name].slice(0, 5)}")
 
+
+print(table.to_pandas().head(3))
+print(table.columns)
 
 # Clean up
 shutil.rmtree(output_dir)
