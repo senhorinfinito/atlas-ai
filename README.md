@@ -52,6 +52,24 @@ Here's a high-level overview of the sinking process:
 
 ## Installation
 
+To use Atlas, you need to have FFmpeg installed on your system.
+
+**macOS**
+```bash
+brew install ffmpeg
+```
+
+**Linux**
+```bash
+sudo apt-get install ffmpeg
+```
+
+If you have installed ffmpeg and are still seeing errors, you may need to set the `DYLD_LIBRARY_PATH` environment variable. For example, if you installed ffmpeg with homebrew, you can run:
+```bash
+export DYLD_LIBRARY_PATH=$(brew --prefix)/lib:$DYLD_LIBRARY_PATH
+```
+
+Then, install Atlas using pip:
 ```bash
 pip install atlas-ai
 ```
@@ -132,7 +150,7 @@ atlas sink examples/data/dummy.csv
 
 ### Sinking from Hugging Face Datasets
 
-For text-based tasks, it is recommended to sink directly from a Hugging Face dataset. This will sink the entire dataset, preserving the original schema.
+It is recommended to sink directly from a Hugging Face dataset. This will sink the entire dataset, preserving the original schema and automatically handling multimodal data such as images and audio.
 
 ```python
 from datasets import load_dataset
@@ -213,95 +231,87 @@ atlas sink examples/data/stsb_train.jsonl
 
 The `atlas` Python API provides more control and flexibility for advanced use cases.
 
+**Sinking from HuggingFace**
+```python
+from datasets import load_dataset
+import atlas
+dataset = load_dataset("glue", "mrpc", split="train")
+atlas.sink(dataset, "mrpc.lance")
+```
+
+<details>
+<summary>Other Examples</summary>
+
 **Object Detection (COCO)**
 ```python
 import atlas
 atlas.sink("examples/data/coco/annotations/instances_val2017_small.json")
 ```
 
-<details>
-<summary>Object Detection (YOLO)</summary>
+**Object Detection (YOLO)**
 
 ```python
 import atlas
 atlas.sink("examples/data/yolo/coco128")
 ```
-</details>
 
-<details>
-<summary>Segmentation (COCO)</summary>
+**Segmentation (COCO)**
 
 ```python
 import atlas
 atlas.sink("examples/data/coco/annotations/instances_val2017_small.json", options={"task": "segmentation"})
 ```
-</details>
 
-<details>
-<summary>Tabular (CSV)</summary>
+**Tabular (CSV)**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy.csv")
 ```
-</details>
 
-<details>
-<summary>Text</summary>
+**Text**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy.txt")
 ```
-</details>
 
-<details>
-<summary>Instruction</summary>
+**Instruction**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy.jsonl")
 ```
-</details>
 
-<details>
-<summary>Embedding</summary>
+**Embedding**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy.parquet")
 ```
-</details>
 
-<details>
-<summary>Ranking</summary>
+**Ranking**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy_ranking.jsonl")
 ```
-</details>
 
-<details>
-<summary>Vision-Language</summary>
+**Vision-Language**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy_vl.jsonl")
 ```
-</details>
 
-<details>
-<summary>Chain of Thought</summary>
+**Chain of Thought**
 
 ```python
 import atlas
 atlas.sink("examples/data/dummy_cot.jsonl")
 ```
-</details>
 
-<details>
-<summary>Paired Text</summary>
+**Paired Text**
 
 ```python
 import atlas

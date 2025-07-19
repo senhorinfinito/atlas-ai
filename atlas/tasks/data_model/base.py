@@ -30,6 +30,7 @@ class TaskMetadata:
     """
 
     class_names: List[str] = field(default_factory=list)
+    decode_meta: Dict[str, Any] = field(default_factory=dict)
     misc: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -94,8 +95,11 @@ class BaseDataset(ABC):
 
         schema = first_batch.schema
         if self.metadata:
-            schema = schema.with_metadata({"metadata": json.dumps(self.metadata.__dict__)})
-        
+            schema = schema.with_metadata({
+                "metadata": json.dumps(self.metadata.__dict__),
+                "decode_meta": json.dumps(self.metadata.decode_meta)
+                })
+
         kwargs.pop("image_root", None)
         lance.write_dataset(new_reader(), uri, schema=schema, mode=mode, **kwargs)
 

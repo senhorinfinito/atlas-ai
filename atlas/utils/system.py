@@ -15,6 +15,22 @@
 # limitations under the License.
 
 import psutil
+import shutil
+
+def check_ffmpeg():
+    """
+    Checks if FFmpeg is installed.
+    """
+    if not shutil.which("ffmpeg"):
+        raise ImportError(
+            "FFmpeg is not installed. Please install it to process audio data. "
+            "On macOS, you can use 'brew install ffmpeg'. "
+            "On Linux, you can use 'sudo apt-get install ffmpeg'.\n"
+            "If you have installed ffmpeg and are still seeing this error, "
+            "you may need to set the DYLD_LIBRARY_PATH environment variable. "
+            "For example, if you installed ffmpeg with homebrew, you can run: "
+            "export DYLD_LIBRARY_PATH=$(brew --prefix)/lib:$DYLD_LIBRARY_PATH"
+        )
 
 
 def get_available_memory():
