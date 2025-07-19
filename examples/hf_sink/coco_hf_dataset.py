@@ -21,15 +21,21 @@ import pyarrow as pa
 import atlas
 from atlas.tasks.hf.hf import HFDataset
 
-# 1. Load a real, public dataset with images
-base_dataset = load_dataset("ariG23498/coco2017", split="train[:10]")
+# 1. Load a real, public dataset with images in streaming mode
+print("Loading dataset in streaming mode...")
+base_dataset = load_dataset("ariG23498/coco2017", split="train", streaming=True)
+print("Taking first 10 elements...")
+streamed_dataset = base_dataset.take(10)
+print("Dataset loaded.")
 
 # 2. Instantiate HFDataset with expansion enabled
-hf_dataset = HFDataset(base_dataset, expand_level=1)
+hf_dataset = HFDataset(streamed_dataset, expand_level=1)
 
 # 3. Ingest data
 output_dir = "coco_hf_expanded.lance"
+print("Sinking data...")
 atlas.sink(hf_dataset, output_dir)
+print("Sinking complete.")
 
 # 4. Read the data back
 sink = atlas.data_sinks.LanceDataSink(output_dir)
@@ -51,6 +57,7 @@ assert any("categories" in name for name in schema_names)
 
 
 # Verify row count
+print("total rows ", retrieved_data.count_rows())
 assert retrieved_data.count_rows() == 10
 
 print("\nSuccessfully ingested and verified the dataset with expanded nested columns.")
@@ -59,9 +66,11 @@ print("Non-binary columns:")
 
 
 print(table.to_pandas().head(3))
-print(table.columns)
+print(table.schema)
 
 # Clean up
 shutil.rmtree(output_dir)
 
+# fix the need for this
+exit()
 
