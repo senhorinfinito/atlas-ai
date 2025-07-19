@@ -102,7 +102,7 @@ class YoloDataset(BaseDataset):
                 with open(image_path, "rb") as f:
                     img_bytes = f.read()
                     images_data.append(img_bytes)
-                    img = Image.open(image_path)
+                with Image.open(image_path) as img:
                     width, height = img.size
                     widths.append(width)
                     heights.append(height)

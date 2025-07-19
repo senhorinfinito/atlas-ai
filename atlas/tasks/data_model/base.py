@@ -89,9 +89,14 @@ class BaseDataset(ABC):
         reader = self.to_batches(batch_size=batch_size)
 
         def new_reader():
-            yield first_batch
-            for batch in batches:
-                yield batch
+            try:
+                yield first_batch
+                for batch in batches:
+                    yield batch
+            finally:
+                # Ensure the generator is closed
+                if hasattr(reader, 'close'):
+                    reader.close()
 
         schema = first_batch.schema
         if self.metadata:

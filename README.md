@@ -150,7 +150,7 @@ atlas sink examples/data/dummy.csv
 
 ### Sinking from Hugging Face Datasets
 
-It is recommended to sink directly from a Hugging Face dataset. This will sink the entire dataset, preserving the original schema and automatically handling multimodal data such as images and audio.
+It is **recommended** to sink directly from a Hugging Face dataset. This will sink the entire dataset, preserving the original schema and automatically handling multimodal data such as images and audio. Atlas also supports inline multimodal data, like text, audio etc. to binray data and ingest it.
 
 ```python
 from datasets import load_dataset
@@ -231,13 +231,15 @@ atlas sink examples/data/stsb_train.jsonl
 
 The `atlas` Python API provides more control and flexibility for advanced use cases.
 
-**Sinking from HuggingFace**
+**Sinking from HuggingFace (Recommended)**
 ```python
 from datasets import load_dataset
 import atlas
 dataset = load_dataset("glue", "mrpc", split="train")
 atlas.sink(dataset, "mrpc.lance")
 ```
+
+For more examples on sinking HuggingFace datasets, including multimodal datasets, please see the examples in the `examples/hf_sink` directory.
 
 <details>
 <summary>Other Examples</summary>
@@ -321,7 +323,7 @@ atlas.sink("examples/data/stsb_train.jsonl")
 </details>
 
 <details>
-<summary>Manual Sink / Build on Top</summary>
+<summary>Extend the Sink API</summary>
 
 You can also import specific task types and use them directly or even subclass them for more advanced use cases. For example, let's create a custom sink that adds an `image_url` to the COCO dataset.
 

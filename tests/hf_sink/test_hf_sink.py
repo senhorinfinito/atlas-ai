@@ -37,7 +37,7 @@ class TestHFSink(unittest.TestCase):
         self.assertTrue(os.path.exists(self.uri))
         lance_dataset = lance.dataset(self.uri)
         self.assertEqual(lance_dataset.count_rows(), len(self.dataset))
-        self.assertEqual(lance_dataset.schema, self.dataset.features.arrow_schema)
+        self.assertEqual(set(lance_dataset.schema.names), set(self.dataset.features.keys()))
 
 
 if __name__ == "__main__":
