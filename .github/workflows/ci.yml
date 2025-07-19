@@ -13,6 +13,7 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
           pip install -e .[audio] requests
       - name: Run e2e tests
@@ -38,6 +39,7 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
           pip install -e .[audio]
           pip install pytest
