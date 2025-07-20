@@ -42,7 +42,7 @@ class CocoSegmentationDataset(BaseDataset):
         Infers the image root directory from the annotation file path.
         """
         # Check for common image directory names relative to the annotation file
-        annotation_dir = os.path.dirname(self.data)
+        annotation_dir = os.path.dirname(os.path.dirname(self.data))
         common_image_dirs = ["images", "train2017", "val2017", "test2017"]
         for dir_name in common_image_dirs:
             image_dir = os.path.join(annotation_dir, dir_name)
