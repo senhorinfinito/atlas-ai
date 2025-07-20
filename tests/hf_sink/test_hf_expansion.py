@@ -18,11 +18,10 @@ import unittest
 import os
 import shutil
 import lance
-from datasets import Dataset, Features, Value, ClassLabel, Sequence
+from datasets import Dataset, Features, Value
 import pyarrow as pa
 
-from atlas.data_sinks import LanceDataSink
-from atlas.tasks.hf.hf import HFDataset
+from atlas.data_sinks import sink
 
 
 class TestHFExpansion(unittest.TestCase):
@@ -51,10 +50,8 @@ class TestHFExpansion(unittest.TestCase):
             shutil.rmtree(self.test_dir)
 
     def test_expansion_with_nulls_robust(self):
-        hf_dataset = HFDataset(self.dataset, expand_level=1, handle_nested_nulls=True)
         uri = os.path.join(self.test_dir, "expansion_robust.lance")
-        sink = LanceDataSink(path=uri)
-        sink.write(hf_dataset)
+        sink(self.dataset, uri, task="hf", expand_level=1, handle_nested_nulls=True)
 
         retrieved_data = lance.dataset(uri)
         self.assertEqual(retrieved_data.count_rows(), len(self.data))
@@ -68,10 +65,9 @@ class TestHFExpansion(unittest.TestCase):
         self.assertListEqual(table.column("nested_c").to_pylist(), [None, True, None, None, None, None])
 
     def test_expansion_with_nulls_fast_path_incorrect(self):
-        hf_dataset = HFDataset(self.dataset, expand_level=1, handle_nested_nulls=False)
         uri = os.path.join(self.test_dir, "expansion_fast_incorrect.lance")
-        sink = LanceDataSink(path=uri)
-        sink.write(hf_dataset)
+        # Note: handle_nested_nulls=False is the default
+        sink(self.dataset, uri, task="hf", expand_level=1)
 
         retrieved_data = lance.dataset(uri)
         table = retrieved_data.to_table()

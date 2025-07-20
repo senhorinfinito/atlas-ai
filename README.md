@@ -110,8 +110,6 @@ The `atlas` Python API provides a flexible and powerful way to sink your dataset
 
 This is the recommended way to use Atlas. You can sink a dataset directly from the Hugging Face Hub. Atlas will preserve the original schema and automatically handle multimodal data like images and audio.
 
-For nested Hugging Face datasets, you can use the `expand_level` argument to flatten the structure. For example, `expand_level=1` will expand the first level of nested columns.
-
 Here's an example using the `lambdalabs/pokemon-blip-captions` dataset:
 
 ```python
@@ -139,6 +137,70 @@ atlas.sink(dataset, "pokemon.lance")
 +====================================+==================+=========+==========+============================================================+==========================================================+
 | b'\xff\xd8\xff\xe0\x00\x10JFIF'... | 000000397133.jpg |     640 |      427 | [44 67  1 49 51 51 79  1 47 47 51 51 56 50 56 56 79 57 81] | [array([217.62, 240.54,  38.99,  57.75], dtype=float32)  |
 +------------------------------------+------------------+---------+----------+------------------------------------------------------------+----------------------------------------------------------+
+```
+</details>
+
+<details>
+<summary>Automatically expand nested schemas</summary>
+
+For nested Hugging Face datasets, you can use the `expand_level` argument to flatten the structure. For example, `expand_level=1` will expand the first level of nested columns.
+
+If your nested data contains missing keys or `None` values, the default expansion may produce incorrect results. To handle these cases gracefully, set `handle_nested_nulls=True`. This uses a more robust (but slightly slower) method to ensure nulls are preserved correctly.
+
+**Example:**
+
+Given a dataset with a nested column `nested`:
+```python
+from datasets import Dataset, Features, Value
+import atlas
+
+data = [
+    {"nested": {"a": 1, "b": "one"}},
+    {"nested": {"a": 2, "b": "two", "c": True}},
+    {"nested": {"a": 3}},
+    {},
+]
+features = Features({
+    "nested": {
+        "a": Value("int64"),
+        "b": Value("string"),
+        "c": Value("bool"),
+    }
+})
+dataset = Dataset.from_list(data, features=features)
+
+# Sink with expansion
+atlas.sink(dataset, "expanded.lance", task="hf", expand_level=1, handle_nested_nulls=True)
+```
+
+**Original Data Table:**
+```
++------------------------------------------+
+| nested                                   |
++==========================================+
+| {'a': 1, 'b': 'one', 'c': None}           |
++------------------------------------------+
+| {'a': 2, 'b': 'two', 'c': True}           |
++------------------------------------------+
+| {'a': 3, 'b': None, 'c': None}            |
++------------------------------------------+
+| None                                     |
++------------------------------------------+
+```
+
+**Expanded Data Table (`expand_level=1`):**
+```
++----------+----------+----------+
+| nested_a | nested_b | nested_c |
++==========+==========+==========+
+| 1        | 'one'    | None     |
++----------+----------+----------+
+| 2        | 'two'    | True     |
++----------+----------+----------+
+| 3        | None     | None     |
++----------+----------+----------+
+| None     | None     | None     |
++----------+----------+----------+
 ```
 </details>
 
