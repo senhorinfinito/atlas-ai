@@ -118,7 +118,7 @@ def create_dataset(
         elif task == "hf":
             from atlas.tasks.hf.hf import HFDataset
 
-            return HFDataset(data)
+            return HFDataset(data, **kwargs)
 
     if not task or not format:
         inferred_task, inferred_format = infer_dataset_type(data)

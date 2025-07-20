@@ -74,7 +74,50 @@ def sink(
     mode: str = "overwrite",
     **kwargs,
 ):
+    """
+    Ingests data from a source and sinks it into a Lance dataset.
+
+    This is the main entry point for data ingestion in Atlas. It automatically
+    infers the data type and format, and then uses the appropriate data loader
+    to write the data to a Lance dataset.
+
+    Args:
+        data: The data to sink. Can be a path to a file or directory, or a
+            Hugging Face Dataset object.
+        uri (str): The URI of the Lance dataset to create.
+        task (str, optional): The task type of the data (e.g., "object_detection").
+            If not provided, Atlas will try to infer it.
+        format (str, optional): The format of the data (e.g., "coco").
+            If not provided, Atlas will try to infer it.
+        mode (str, optional): The write mode for the Lance dataset.
+            Defaults to "overwrite".
+        **kwargs: Additional options passed to the underlying data loader.
+
+    Keyword Args:
+        expand_level (int): For Hugging Face datasets with nested schemas,
+            this specifies the level of nesting to expand into separate columns.
+            Defaults to 0 (no expansion).
+        handle_nested_nulls (bool): For Hugging Face datasets, this flag
+            determines how to handle missing or null values in nested fields
+            during expansion.
+            - False (Default): Prioritizes speed. Missing fields are filled
+              with default values for their data type (e.g., 0 for integers,
+              "" for strings). This is fast but can lead to inaccurate
+              downstream analysis if the distinction between a real default
+              value and a missing value is important.
+            - True: Prioritizes data correctness. Missing fields are
+              represented as true `None` (null) values. This is slightly
+              slower but ensures that missing data is not misrepresented,
+              leading to more accurate analysis.
+    """
     if not uri:
         raise ValueError("URI must be specified for the sink operation.")
+        
+    # Separate kwargs for dataset creation from Lance write kwargs
+    dataset_kwargs = {
+        "expand_level": kwargs.pop("expand_level", 0),
+        "handle_nested_nulls": kwargs.pop("handle_nested_nulls", False),
+    }
+    # Pass the remaining kwargs to the LanceDataSink
     sink = LanceDataSink(path=uri, mode=mode, **kwargs)
-    sink.write(data, task=task, format=format, **kwargs)
+    sink.write(data, task=task, format=format, **dataset_kwargs)

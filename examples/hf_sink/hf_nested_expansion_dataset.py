@@ -48,11 +48,11 @@ new_features = Features({
 dataset = Dataset.from_dict({"image": images, "bbox": bboxes, "category": categories}, features=new_features)
 
 
-# 3. Instantiate HFDataset with expansion enabled
+# 3. Instantiate HFDataset with expansion enabled (but it should not expand sequences)
 hf_dataset = HFDataset(dataset, expand_level=1)
 
 # 4. Ingest data
-output_dir = "coco_expanded.lance"
+output_dir = "coco_not_expanded.lance"
 atlas.sink(hf_dataset, output_dir)
 
 # 5. Read the data back
@@ -66,14 +66,17 @@ print("Schema:", table.schema)
 # Verify that the 'image' column was ingested as binary
 assert pa.types.is_large_binary(table.schema.field("image").type)
 
-# Verify that the nested 'objects' Sequence was expanded into separate columns
+# Verify that the nested 'bbox' and 'category' Sequences were NOT expanded
 assert "bbox" in table.schema.names
+assert pa.types.is_list(table.schema.field("bbox").type)
 assert "category" in table.schema.names
+assert pa.types.is_list(table.schema.field("category").type)
+
 
 # Verify row count
 assert retrieved_data.count_rows() == 10
 
-print("\nSuccessfully ingested and verified the dataset with expanded nested columns.")
+print("\nSuccessfully ingested and verified the dataset with non-expanded nested columns.")
 print(f"Retrieved {retrieved_data.count_rows()} rows.")
 print("Non-binary columns:")
 for col_name in [name for name in table.schema.names if "image" not in name]:

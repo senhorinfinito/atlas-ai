@@ -18,13 +18,14 @@
 import unittest
 import os
 import shutil
+import json
+import lance
 from datasets import Dataset, Image, Audio
 from PIL import Image as PILImage
 import numpy as np
 import pyarrow as pa
 
-from atlas.data_sinks import LanceDataSink
-from atlas.tasks.hf.hf import HFDataset
+from atlas.data_sinks import sink
 
 
 class HFMultimodalDataSinkTest(unittest.TestCase):
@@ -54,19 +55,21 @@ class HFMultimodalDataSinkTest(unittest.TestCase):
     def test_image_ingestion_retrieval(self):
         data = {"image": [self.image_path]}
         dataset = Dataset.from_dict(data).cast_column("image", Image())
-        hf_dataset = HFDataset(dataset)
+        uri = os.path.join(self.test_dir, "image.lance")
         
         # Ingest data
-        sink = LanceDataSink(path=os.path.join(self.test_dir, "image.lance"))
-        sink.write(hf_dataset)
+        sink(dataset, uri, task="hf")
 
         # Retrieve data
-        retrieved_data = sink.read()
+        retrieved_data = lance.dataset(uri)
         self.assertIn("image", retrieved_data.schema.names)
         
         # Verify decode_meta
-        self.assertIn("image", sink.metadata.decode_meta)
-        self.assertIn("'image': 'Image(mode=None, decode=True)'", str(sink.metadata.decode_meta))
+        schema_metadata = retrieved_data.schema.metadata
+        self.assertIn(b'decode_meta', schema_metadata)
+        decode_meta = json.loads(schema_metadata[b'decode_meta'])
+        self.assertIn("image", decode_meta)
+        self.assertEqual(decode_meta["image"], str(Image()))
 
         # Verify image data
         table = retrieved_data.to_table()
@@ -78,19 +81,21 @@ class HFMultimodalDataSinkTest(unittest.TestCase):
     def test_audio_ingestion_retrieval(self):
         data = {"audio": [self.audio_path]}
         dataset = Dataset.from_dict(data).cast_column("audio", Audio())
-        hf_dataset = HFDataset(dataset)
+        uri = os.path.join(self.test_dir, "audio.lance")
 
         # Ingest data
-        sink = LanceDataSink(path=os.path.join(self.test_dir, "audio.lance"))
-        sink.write(hf_dataset)
+        sink(dataset, uri, task="hf")
 
         # Retrieve data
-        retrieved_data = sink.read()
+        retrieved_data = lance.dataset(uri)
         self.assertIn("audio", retrieved_data.schema.names)
 
         # Verify decode_meta
-        self.assertIn("audio", sink.metadata.decode_meta)
-        self.assertIn("'audio': 'Audio(sampling_rate=None, decode=True, stream_index=None)'", str(sink.metadata.decode_meta))
+        schema_metadata = retrieved_data.schema.metadata
+        self.assertIn(b'decode_meta', schema_metadata)
+        decode_meta = json.loads(schema_metadata[b'decode_meta'])
+        self.assertIn("audio", decode_meta)
+        self.assertEqual(decode_meta["audio"], str(Audio()))
 
         # Verify audio data
         table = retrieved_data.to_table()
