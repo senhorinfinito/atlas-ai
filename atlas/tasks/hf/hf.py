@@ -15,10 +15,10 @@
 # limitations under the License.
 
 import io
-from typing import Generator, Union
+from typing import Generator
 
 import pyarrow as pa
-from datasets import Dataset, Features
+from datasets import Dataset
 from datasets.features.features import ClassLabel, Value, Sequence, Image, Audio
 
 from atlas.tasks.data_model.base import BaseDataset
@@ -30,17 +30,16 @@ class HFDataset(BaseDataset):
     A dataset that wraps a Hugging Face dataset.
     """
 
-    def __init__(self, data: Dataset, expand_level: int = 0):
+    def __init__(self, data: Dataset, expand_level: int = 0, handle_nested_nulls: bool = False):
         super().__init__(data)
-        self.expand_level = expand_level
+        self.expand_level = 1 if expand_level > 0 else 0
+        self.handle_nested_nulls = handle_nested_nulls
+        self._expansion_map = {}
         self.metadata.decode_meta = self._get_decode_meta()
         if any(isinstance(f, Audio) for f in self.data.features.values()):
             check_ffmpeg()
 
     def _get_decode_meta(self):
-        """
-        Generates the decode metadata for the dataset.
-        """
         decode_meta = {}
         for name, feature in self.data.features.items():
             if isinstance(feature, (Image, Audio)):
@@ -48,37 +47,33 @@ class HFDataset(BaseDataset):
         return decode_meta
 
     def to_arrow_schema(self) -> pa.Schema:
-        """
-        Returns the schema of the dataset.
-        """
         fields = []
+        self._expansion_map.clear()
         for name, feature in self.data.features.items():
             fields.extend(self._convert_feature_to_arrow_fields(name, feature, self.expand_level))
         return pa.schema(fields)
 
     def _convert_feature_to_arrow_fields(self, name: str, feature, expand_level: int) -> list[pa.Field]:
         """
-        Converts a Hugging Face feature to a list of PyArrow fields.
+        _convert_feature_to_arrow_fields and _convert_feature_to_arrow_field work together to recursively
+        define the schema. The former handles expansion of nested features, while the latter handles the
+        conversion of individual features to Arrow fields.
         """
-        if expand_level > 0 and isinstance(feature, (dict, Sequence)):
-            if isinstance(feature, dict):
-                sub_features = feature.items()
-            else: # Sequence
-                if isinstance(feature.feature, dict):
-                    sub_features = feature.feature.items()
-                else:
-                    return [self._convert_feature_to_arrow_field(name, feature)]
-
+        # Only expand if the feature is a dictionary. Do not expand lists of dicts.
+        if expand_level > 0 and isinstance(feature, dict):
             fields = []
-            for sub_name, sub_feature in sub_features:
-                fields.extend(self._convert_feature_to_arrow_fields(f"{name}_{sub_name}", sub_feature, expand_level - 1))
+            for sub_name, sub_feature in feature.items():
+                new_name = f"{name}_{sub_name}"
+                self._expansion_map[new_name] = (name, sub_name)
+                fields.extend(self._convert_feature_to_arrow_fields(new_name, sub_feature, expand_level - 1))
             return fields
         else:
             return [self._convert_feature_to_arrow_field(name, feature)]
 
     def _convert_feature_to_arrow_field(self, name: str, feature) -> pa.Field:
         """
-        Converts a Hugging Face feature to a PyArrow field.
+        Converts a single Hugging Face feature to a PyArrow field. This method is called recursively
+        for nested features like Sequence, dict, and list to define their nested structure.
         """
         if isinstance(feature, (Image, Audio)):
             return pa.field(name, pa.large_binary(), metadata={"lance:encoding": "binary"})
@@ -86,100 +81,140 @@ class HFDataset(BaseDataset):
             return pa.field(name, pa.string())
         if isinstance(feature, Value):
             return pa.field(name, feature.pa_type)
+        # For a Sequence (list), recursively call this function to determine the type of the elements.
         if isinstance(feature, Sequence):
-            return pa.field(name, pa.list_(self._convert_feature_to_arrow_field(name, feature.feature).type))
+            return pa.field(name, pa.list_(self._convert_feature_to_arrow_field("item", feature.feature).type))
+        # For a dict, recursively call this function for each value to create a struct.
         if isinstance(feature, dict):
             return pa.field(name, pa.struct([self._convert_feature_to_arrow_field(k, v) for k, v in feature.items()]))
+        # For a list, recursively call this function on the first element to determine the list type.
         if isinstance(feature, list):
-            return pa.field(name, pa.list_(self._convert_feature_to_arrow_field(name, feature[0]).type))
+            return pa.field(name, pa.list_(self._convert_feature_to_arrow_field("item", feature[0]).type))
         raise ValueError(f"Unsupported feature type for column '{name}': {feature}")
+
+    def _process_column(self, column_data: pa.Array, feature) -> pa.Array:
+        if column_data is None:
+            return column_data
+
+        if isinstance(feature, Image):
+            serialized_data = []
+            for img_data in column_data.to_pylist():
+                if not img_data:
+                    serialized_data.append(None)
+                    continue
+                if 'bytes' in img_data and img_data['bytes']:
+                    serialized_data.append(img_data['bytes'])
+                elif 'path' in img_data and img_data['path']:
+                    with open(img_data['path'], 'rb') as f:
+                        serialized_data.append(f.read())
+                else:
+                    buf = io.BytesIO()
+                    img_data.save(buf, format='PNG')
+                    serialized_data.append(buf.getvalue())
+            return pa.array(serialized_data, type=pa.large_binary())
+
+        if isinstance(feature, Audio):
+            serialized_data = []
+            for item in column_data.to_pylist():
+                if item and 'path' in item and item['path']:
+                    with open(item['path'], 'rb') as f:
+                        serialized_data.append(f.read())
+                elif item and 'bytes' in item:
+                    serialized_data.append(item['bytes'])
+                else:
+                    serialized_data.append(None)
+            return pa.array(serialized_data, type=pa.large_binary())
+
+        if isinstance(feature, ClassLabel):
+            return pa.array([feature.int2str(label) if label is not None else None for label in column_data.to_pylist()], type=pa.string())
+
+        if isinstance(feature, Sequence):
+            if isinstance(feature.feature, ClassLabel):
+                return pa.array([[feature.feature.int2str(l) for l in label_list] if label_list is not None else None for label_list in column_data.to_pylist()])
+            # This block handles a special case where a column is a list of dictionaries (Sequence of dicts),
+            # and some of the values within those dictionaries are ClassLabels. The default Arrow conversion
+            # does not handle converting the nested ClassLabels to strings, so we must do it manually.
+            # This is not the most performant approach as it iterates in Python, but it correctly handles the conversion.
+            if isinstance(feature.feature, dict):
+                processed_list = []
+                for list_of_dicts in column_data.to_pylist():
+                    if list_of_dicts is None:
+                        processed_list.append(None)
+                        continue
+                    new_list = []
+                    for item_dict in list_of_dicts:
+                        new_dict = {}
+                        for k, v in item_dict.items():
+                            sub_feature = feature.feature[k]
+                            if isinstance(sub_feature, ClassLabel) and v is not None:
+                                new_dict[k] = sub_feature.int2str(v)
+                            else:
+                                new_dict[k] = v
+                        new_list.append(new_dict)
+                    processed_list.append(new_list)
+                return pa.array(processed_list)
+
+        return column_data
 
     def to_batches(self, batch_size: int = 1024, **kwargs) -> Generator[pa.RecordBatch, None, None]:
         """
         Yields batches of the dataset as Arrow RecordBatches.
+        The logic iterates through the fields of the *target schema* and constructs each column
+        one by one. This approach is robust because it guarantees that the output will match the
+        schema, and it cleanly separates the logic for handling expanded and non-expanded columns.
         """
         schema = self.to_arrow_schema()
-        for batch in self.data.with_format("arrow").iter(batch_size=batch_size):
-            arrays = []
-            for field in schema:
-                name = field.name
-                feature = self.data.features
-                # Handle expanded columns
-                if "_" in name and name.split("_")[0] in self.data.features and isinstance(self.data.features[name.split("_")[0]], (dict, Sequence)):
-                    name_parts = name.split("_")
-                    column_data = batch[name_parts[0]]
-                    if isinstance(column_data, pa.ChunkedArray):
-                        column_data = column_data.combine_chunks()
-                    feature = feature[name_parts[0]]
-                    for part in name_parts[1:]:
-                        if column_data is None:
-                            break
-                        column_data = column_data.field(part)
-                        if isinstance(feature, Sequence):
-                            feature = feature.feature
-                        else:
-                            feature = feature[part]
-                else:
-                    column_data = batch[name]
-                    feature = feature[name]
 
-                if isinstance(feature, Image):
-                    serialized_data = []
-                    for img_data in column_data.to_pylist():
-                        if img_data:
-                            if 'bytes' in img_data and img_data['bytes']:
-                                serialized_data.append(img_data['bytes'])
-                            elif 'path' in img_data and img_data['path']:
-                                with open(img_data['path'], 'rb') as f:
-                                    serialized_data.append(f.read())
-                            else:
-                                # Handle PIL Image objects
-                                buf = io.BytesIO()
-                                img_data.save(buf, format='PNG')
-                                serialized_data.append(buf.getvalue())
-                        else:
-                            serialized_data.append(None)
-                    arrays.append(pa.array(serialized_data, type=pa.large_binary()))
-                elif isinstance(feature, Audio):
-                    serialized_data = []
-                    for item in column_data.to_pylist():
-                        if item and 'path' in item and item['path']:
-                            with open(item['path'], 'rb') as f:
-                                serialized_data.append(f.read())
-                        elif item and 'bytes' in item:
-                            serialized_data.append(item['bytes'])
-                        else:
-                            serialized_data.append(None)
-                    arrays.append(pa.array(serialized_data, type=pa.large_binary()))
-                elif isinstance(feature, Sequence) and isinstance(feature.feature, dict):
-                    # Handle list of dicts by converting ClassLabels to strings
-                    converted_data = []
-                    for list_of_dicts in column_data.to_pylist():
-                        if list_of_dicts is None:
-                            converted_data.append(None)
+        if self.handle_nested_nulls:
+            # Slower, but robust path that handles missing keys and null values in nested dicts.
+            for batch in self.data.iter(batch_size=batch_size):
+                arrays = []
+                for field in schema:
+                    if field.name in self._expansion_map:
+                        original_name, sub_name = self._expansion_map[field.name]
+                        original_feature = self.data.features[original_name]
+                        
+                        if isinstance(original_feature, dict):
+                            sub_feature = original_feature[sub_name]
+                            column_data = [row.get(sub_name) if row else None for row in batch[original_name]]
+                            processed_data = self._process_column(pa.array(column_data), sub_feature)
+                            arrays.append(pa.array(processed_data, type=field.type))
                             continue
-                        new_list = []
-                        for item_dict in list_of_dicts:
-                            new_dict = item_dict.copy()
-                            for key, value in item_dict.items():
-                                sub_feature = feature.feature[key]
-                                if isinstance(sub_feature, ClassLabel):
-                                    new_dict[key] = sub_feature.int2str(value) if value is not None else None
-                                elif isinstance(sub_feature, Sequence) and isinstance(sub_feature.feature, ClassLabel):
-                                     new_dict[key] = [sub_feature.feature.int2str(v) for v in value] if value is not None else None
-                            new_list.append(new_dict)
-                        converted_data.append(new_list)
-                    arrays.append(pa.array(converted_data, type=field.type))
-                elif isinstance(feature, ClassLabel):
-                    string_labels = [feature.int2str(label) if label is not None else None for label in column_data.to_pylist()]
-                    arrays.append(pa.array(string_labels, type=pa.string()))
-                else:
-                    arrays.append(pa.array(column_data, type=field.type))
-            yield pa.RecordBatch.from_arrays(arrays, schema=schema)
+
+                    column_data = pa.array(batch[field.name])
+                    feature = self.data.features[field.name]
+                    processed_data = self._process_column(column_data, feature)
+                    arrays.append(pa.array(processed_data, type=field.type))
+
+                yield pa.RecordBatch.from_arrays(arrays, schema=schema)
+        else:
+            # Faster, Arrow-native path. This is less robust to missing nested data.
+            for batch in self.data.with_format("arrow").iter(batch_size=batch_size):
+                arrays = []
+                for field in schema:
+                    if field.name in self._expansion_map:
+                        original_name, sub_name = self._expansion_map[field.name]
+                        original_feature = self.data.features[original_name]
+                        
+                        if isinstance(original_feature, dict):
+                            column_data = batch[original_name]
+                            if isinstance(column_data, pa.ChunkedArray):
+                                column_data = column_data.combine_chunks()
+                            
+                            sub_column_data = column_data.field(sub_name)
+                            sub_feature = original_feature[sub_name]
+                            
+                            processed_data = self._process_column(sub_column_data, sub_feature)
+                            arrays.append(pa.array(processed_data, type=field.type))
+                            continue
+
+                    column_data = batch[field.name]
+                    feature = self.data.features[field.name]
+                    processed_data = self._process_column(column_data, feature)
+                    arrays.append(pa.array(processed_data, type=field.type))
+
+                yield pa.RecordBatch.from_arrays(arrays, schema=schema)
 
     @property
     def schema(self) -> pa.Schema:
-        """
-        Returns the schema of the dataset.
-        """
         return self.to_arrow_schema()
