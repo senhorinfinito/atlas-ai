@@ -322,6 +322,9 @@ atlas.sink(custom_coco_dataset, "coco_with_url.lance")
 The `atlas` CLI provides a simple way to interact with your datasets.
 
 <details>
+<summary>CLI Usage</summary>
+
+<details>
 <summary>Object Detection (COCO)</summary>
 
 ```bash
@@ -424,6 +427,7 @@ atlas sink examples/data/dummy_cot.jsonl
 atlas sink examples/data/stsb_train.jsonl
 ```
 
+</details>
 </details>
 
 ---
