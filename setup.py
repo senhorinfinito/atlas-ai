@@ -22,7 +22,8 @@ setup(
         'datasets',
         'torchcodec',
         'lancedb',
-        'tqdm'
+        'tqdm',
+        'rich'
     ],
     extras_require={
         'audio': ['soundfile']
