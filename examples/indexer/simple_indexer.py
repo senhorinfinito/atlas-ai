@@ -11,7 +11,7 @@ def main():
         os.system("rm -rf cifar10.lance")
     print("Creating dataset...")
     # Use a non-gated dataset
-    dataset = load_dataset("cifar10", split="train")
+    dataset = load_dataset("cifar10", split="train[512]")
     # Add dummy text and vector columns for the example
     dataset = dataset.map(lambda example: {'text': f'this is image {example["img"]}', 'vector': [0.1] * 128})
     atlas.sink(dataset, "cifar10.lance")

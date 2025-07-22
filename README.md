@@ -32,41 +32,14 @@ The vision for Atlas is to provide a comprehensive solution for managing large-s
 ```
 
 -   **Index:** Create powerful, multi-modal indexes (FTS/BM25, Vector embeddings, Hybrid, or custom features) on your data to enable fast and efficient search and retrieval.
-
-```python
-import atlas
-from atlas.index import Indexer
-from datasets import load_dataset
-
-# --- 1. Sink a dataset ---
-# For this example, we'll use the CIFAR-10 dataset and add a dummy text column.
-dataset = load_dataset("cifar10", split="train")
-dataset = dataset.map(lambda example: {'text': f'this is image {example["img"]}'})
-atlas.sink(dataset, "cifar10.lance")
-
-# --- 2. Initialize the Indexer ---
-# The Indexer attaches to an existing Lance dataset.
-idx = Indexer("cifar10.lance")
-
-# --- 3. Create Indexes ---
-# Create a vector index on the 'image' column.
-# Atlas will automatically use a default model to generate embeddings.
-idx.create_index(column="image", index_type="vector")
-
-# Create a Full-Text Search (FTS) index on the 'text' column.
-idx.create_index(column="text", index_type="fts")
-
-# --- 4. List and verify indexes ---
-idx.list_indexes()
-# ┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
-# ┃ Column Name ┃ Data Type                         ┃ Index Type ┃
-# ┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
-# │ img         │ struct<bytes:binary,path:string>  │ None       │
-# │ label       │ int64                             │ None       │
-# │ text        │ string                            │ text_idx   │
-# │ vector      │ fixed_size_list<item: float>[768] │ vector_idx │
-# └─────────────┴───────────────────────────────────┴────────────┘
 ```
+        +---------------------+      +----------------------+      +-----------------------------+
+        |   Lance Dataset     |      |       Index          |      |   Indexed Dataset           |
+        | (Optimized Storage) |----->|  (Vector & Metadata  |----->| (Vector Search, SQL Filters)|
+        | (Larger than memory)|      |      Indexing)       |      | (For massive datasets)      |
+        +---------------------+      +----------------------+      +-----------------------------+
+```
+
 -   **Analyse:** Analyse your datasets to gain insights, identify patterns, and debug your models (Run EDA and filters of larger-than-memory datasets).
 ```
         +-----------------------+      +------------------------+      +----------------------+
@@ -82,6 +55,51 @@ idx.list_indexes()
         |    (Fast Queries)     |----->| (PyTorch, TF, etc.)    |----->|   Models             |
         |                       |      |                        |      |                      |
         +-----------------------+      +------------------------+      +----------------------+
+```
+
+Here is an end-to-end example of how to `sink` a dataset and then `index` it.
+```python
+import atlas
+from atlas.index import Indexer
+from datasets import load_dataset
+
+# --- 1. Sink a dataset from Hugging Face Hub ---
+# We'll use a dataset with images and text captions.
+dataset = load_dataset("lambdalabs/pokemon-blip-captions", split="train")
+atlas.sink(dataset, "pokemon.lance")
+
+# The sink operation creates a Lance dataset with the following structure:
+# +------------------------------------+-----------------------------------------+
+# | image                              | text                                    |
+# +====================================+=========================================+
+# | <PIL.PngImagePlugin.PngImageFile>  | a drawing of a pink pokemon with a...   |
+# +------------------------------------+-----------------------------------------+
+# | <PIL.PngImagePlugin.PngImageFile>  | a green and yellow pokemon with a...    |
+# +------------------------------------+-----------------------------------------+
+
+
+# --- 2. Initialize the Indexer ---
+# The Indexer attaches to the dataset you just sinked.
+idx = Indexer("pokemon.lance")
+
+# --- 3. Create Indexes ---
+# Create a vector index on the 'image' column.
+# Atlas will automatically use a default model to generate embeddings.
+idx.create_index(column="image", index_type="vector")
+
+# Create a Full-Text Search (FTS) index on the 'text' column.
+idx.create_index(column="text", index_type="fts")
+
+# --- 4. List and verify indexes ---
+# The 'vector' column is added for embeddings, and indexes are created.
+idx.list_indexes()
+# ┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+# ┃ Column Name ┃ Data Type                         ┃ Index Type ┃
+# ┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━⇇━━━━━━━━━━━━┩
+# │ image       │ binary                            │ None       │
+# │ text        │ string                            │ text_idx   │
+# │ vector      │ fixed_size_list<item: float>[768] │ vector_idx │
+# └─────────────┴───────────────────────────────────┴────────────┘
 ```
 ---
 
@@ -460,7 +478,7 @@ atlas sink examples/data/stsb_train.jsonl
 ---
 # Index
 
-The **Index** operation allows you to create powerful, multi-modal indexes on your Lance datasets. This enables fast and efficient search and retrieval, which is crucial for working with large-scale AI datasets.
+The **Index** operation allows you to create powerful, multi-modal indexes on your sinked dataset. This enables fast and efficient search and retrieval, which is crucial for working with large-scale AI datasets.
 
 ## Features
 
@@ -480,7 +498,7 @@ To create an index, you first need to have a Lance dataset. You can create one u
 from atlas.index import Indexer
 
 # Initialize the Indexer with the path to your Lance dataset
-idx = Indexer("path/to/your/dataset.lance")
+idx = Indexer("path/to/sink/operation/output.lance")
 
 # Create a vector index on the 'image' column
 # This will automatically generate embeddings for the images
@@ -508,6 +526,3 @@ This will print a table with the column names, data types, and index types, simi
 # Training
 
 **Coming Soon...**
-
-
-```
