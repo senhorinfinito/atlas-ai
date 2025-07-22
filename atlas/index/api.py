@@ -59,11 +59,11 @@ class Indexer:
         index_type: str,
         model: Optional[Any] = None,
         vector_column_name: str = "vector",
+        batch_size: int = 32,
         **kwargs,
     ):
         """
         Creates an index on a specified column.
-
         Args:
             column (str): The name of the column to index.
             index_type (str): The type of index to create ('vector' or 'fts').
@@ -71,44 +71,67 @@ class Indexer:
                                    If not provided, a default model will be used
                                    based on the column's data type.
             vector_column_name (str): The name of the column to store the vectors in.
+            batch_size (int): The batch size for vectorization.
             **kwargs: Additional keyword arguments for index creation.
         """
         if index_type == "vector":
-            # If the column to be indexed is the same as the vector column,
-            # it means we are indexing pre-computed vectors.
-            if column == vector_column_name:
-                 print(f"Creating vector index on pre-computed vectors in column '{column}'...")
-                 self.table.create_index(
-                    vector_column_name=column,
-                    **kwargs
-                 )
-                 return
+            # Check if the column is a pre-computed vector
+            if column in self.table.schema.names:
+                field = self.table.schema.field(column)
+                if pa.types.is_fixed_size_list(field.type) and pa.types.is_floating(
+                    field.type.value_type
+                ):
+                    print(
+                        f"Creating vector index on pre-computed vectors in column '{column}'..."
+                    )
+                    self.table.create_index(vector_column_name=column, **kwargs)
+                    return
 
+            # If not a pre-computed vector, vectorize the source column
             modality = self._get_modality(column)
-            if model is None:
-                vectorizer = Vectorizer(modality=modality)
-            else:
-                vectorizer = Vectorizer(model_name=model, modality=modality)
+            vectorizer = Vectorizer(model_name=model, modality=modality)
 
-            # Read the data from the column
-            data = self.table.to_pandas()[column].tolist()
+            # TODO: Implement an auto-batcher to dynamically determine the batch size
+            temp_table_name = f"{self.table.name}_temp_embeddings"
+            if temp_table_name in self.db.table_names():
+                self.db.drop_table(temp_table_name)
 
-            if modality == "image":
-                # Decode binary data to images
-                data = [Image.open(io.BytesIO(d)) for d in data]
+            scanner = self.table.to_lance().scanner(
+                with_row_id=True, batch_size=batch_size
+            )
 
-            embeddings = vectorizer.vectorize(data)
+            first_batch = True
+            for batch in scanner.to_batches():
+                column_data = batch.column(column).to_pylist()
+                embeddings = vectorizer.vectorize(column_data, batch_size=batch_size)
 
-            # Convert table to pandas, add the new column, and overwrite the table
-            df = self.table.to_pandas()
-            df[vector_column_name] = embeddings
-            
-            self.db.drop_table(self.table.name)
-            self.table = self.db.create_table(self.table.name, data=df)
+                embedding_table = pa.Table.from_pydict(
+                    {
+                        "_rowid": batch.column("_rowid"),
+                        vector_column_name: embeddings,
+                    }
+                )
+
+                if first_batch:
+                    self.db.create_table(temp_table_name, embedding_table)
+                    first_batch = False
+                else:
+                    temp_table = self.db.open_table(temp_table_name)
+                    temp_table.add(embedding_table)
+
+            if first_batch:
+                print("No data to index.")
+                return
+
+            temp_table = self.db.open_table(temp_table_name)
+            self.table.merge(temp_table, left_on="_rowid", right_on="_rowid")
+
+            self.db.drop_table(temp_table_name)
 
             print(f"Creating vector index on column '{vector_column_name}'...")
             self.table.create_index(
                 vector_column_name=vector_column_name,
+                **kwargs,
             )
         elif index_type == "fts":
             print(f"Creating FTS index on column '{column}'...")
