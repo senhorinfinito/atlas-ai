@@ -8,37 +8,38 @@ import lance
 def main():
     # Define paths
     output_dir = "european_art_coco.lance"
-    db_path = "lancedb"
+    db_path = "lancedb"  # Directory for the database
     
     # Clean up previous runs
     if os.path.exists(db_path):
         shutil.rmtree(db_path)
     os.makedirs(db_path, exist_ok=True)
 
-    print("Loading dataset...")
-    # Load a small, fixed number of rows without streaming for speed
-    base_dataset = load_dataset("biglam/european_art_coco_loaded", split="train[:20]", stream=True)
+    print("Loading dataset in streaming mode...")
+    base_dataset = load_dataset("biglam/european_art_coco_loaded", split="train", streaming=True)
+    streamed_dataset = base_dataset.take(100)
     print("Dataset loaded.")
 
     # --- Print initial schema ---
-    print("\n--- Initial Hugging Face Schema (Pre-Expansion) ---")
+    print("\n--- Initial Hugging Face Schema ---")
     # Must instantiate HFDataset to inspect the schema Atlas will generate
-    hf_dataset = HFDataset(base_dataset, expand_level=1)
+    hf_dataset = HFDataset(streamed_dataset, expand_level=1)
     print(hf_dataset.schema)
-    print("-------------------------------------------------")
+    print("------------------------------------")
 
     # --- Sink the data ---
     print("\nSinking data...")
     lance_file_path = os.path.join(db_path, output_dir)
+    # Use the hf_dataset instance directly to avoid re-creating it inside sink
     atlas.sink(hf_dataset, lance_file_path)
     print("Sinking complete.")
 
     # --- Verify the final schema ---
-    print("\n--- Final Lance Schema (Post-Expansion) ---")
+    print("\n--- Final Lance Schema ---")
     output_dataset = lance.dataset(lance_file_path)
     final_schema = output_dataset.schema
     print(final_schema)
-    print("-------------------------------------------")
+    print("--------------------------")
 
     # --- Programmatic Check for Expansion ---
     print("\n--- Verification ---")
@@ -52,9 +53,14 @@ def main():
         print("❌ Verification failed: 'objects' column was NOT expanded.")
         missing = expanded_fields - final_field_names
         print(f"   Missing expanded fields: {', '.join(missing)}")
-    print("----------------------")
-    os._exit(0)
 
+    print("----------------------")
+    
+    # Clean up
+    shutil.rmtree(db_path)
+    
+    # Terminate the script forcefully to avoid hanging issues.
+    os._exit(0)
 
 if __name__ == "__main__":
     main()
