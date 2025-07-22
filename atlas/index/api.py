@@ -33,7 +33,8 @@ class Indexer:
         if table_name in self.db.table_names():
             self.table = self.db.open_table(table_name)
         else:
-            self.table = self.db.create_table(table_name, data=self.uri)
+            data = lance.dataset(self.uri)
+            self.table = self.db.create_table(table_name, data=data)
 
 
     def _get_modality(self, column: str) -> str:
