@@ -26,6 +26,6 @@ setup(
         'rich'
     ],
     extras_require={
-        'audio': ['soundfile', 'transformers']
+        'audio': ['soundfile', 'transformers', 'torch']
     },
 )
