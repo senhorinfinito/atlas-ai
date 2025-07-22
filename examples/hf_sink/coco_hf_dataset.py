@@ -74,4 +74,3 @@ shutil.rmtree(output_dir)
 import os
 # fix the need for this
 os._exit(0)
-

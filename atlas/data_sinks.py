@@ -23,7 +23,7 @@ import pyarrow as pa
 
 from atlas.tasks.data_model.base import BaseDataset
 from atlas.tasks.data_model.factory import create_dataset
-from datasets import Dataset
+from datasets import Dataset, IterableDataset
 
 
 class LanceDataSink:
@@ -34,12 +34,12 @@ class LanceDataSink:
         self._metadata = None
 
     def write(self, data: Union[str, BaseDataset, Dataset], task: Optional[str] = None, format: Optional[str] = None, **kwargs):
-        if isinstance(data, Dataset) and task is None:
+        if isinstance(data, (Dataset, IterableDataset)) and task is None:
             task = "hf"
 
         if isinstance(data, str):
             dataset = create_dataset(data, task=task, format=format, **kwargs)
-        elif isinstance(data, Dataset) or (
+        elif isinstance(data, (Dataset, IterableDataset)) or (
             hasattr(data, "__iter__") and hasattr(data, "__next__")
         ):
             dataset = create_dataset(data, task=task, format=format, **kwargs)

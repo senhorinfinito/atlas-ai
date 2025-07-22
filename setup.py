@@ -20,9 +20,12 @@ setup(
         'pyyaml',
         'pycocotools',
         'datasets',
-        'torchcodec'
+        'torchcodec',
+        'lancedb',
+        'tqdm',
+        'rich'
     ],
     extras_require={
-        'audio': ['soundfile']
+        'audio': ['soundfile', 'transformers', 'torch']
     },
 )
