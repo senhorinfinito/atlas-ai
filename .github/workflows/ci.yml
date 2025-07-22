@@ -28,6 +28,8 @@ jobs:
           python examples/hf_sink/image_dataset.py
           python examples/hf_sink/image_text_dataset.py
           python examples/hf_sink/multimodal_dataset.py
+          python examples/indexer/simple_indexer.py
+          python examples/indexer/coco_indexer.py
 
   unit-tests:
     runs-on: ubuntu-latest
