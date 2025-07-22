@@ -5,12 +5,6 @@ from datasets import load_dataset
 from lancedb.pydantic import LanceModel, vector
 import pyarrow as pa
 
-class CifarSchema(LanceModel):
-    img: object
-    label: int
-    text: str
-    vector: vector(128)
-
 def main():
     # --- Create a dummy dataset ---
     if os.path.exists("cifar10.lance"):
@@ -24,7 +18,7 @@ def main():
     print("Dataset created.")
 
     # --- Initialize the Indexer ---
-    idx = Indexer("cifar10.lance", schema=CifarSchema)
+    idx = Indexer("cifar10.lance")
 
     # --- List existing indexes (should be none) ---
     print("Initial indexes:")
