@@ -15,12 +15,6 @@ from atlas.index import api as indexer_api
 TEST_DIR = "/tmp/atlas_indexer_test"
 
 
-class MySchema(LanceModel):
-    vector: vector(128)
-    id: int
-    text: str
-
-
 @pytest.fixture(scope="function")
 def lance_dataset():
     """Create a dummy lance dataset for testing."""

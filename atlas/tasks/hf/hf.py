@@ -69,6 +69,18 @@ class HFDataset(BaseDataset):
                 self._expansion_map[new_name] = (name, sub_name, "dict")
                 fields.extend(self._convert_feature_to_arrow_fields(new_name, sub_feature, expand_level - 1))
             return fields
+        # Expand lists of dicts
+        if expand_level > 0 and isinstance(feature, Sequence) and isinstance(feature.feature, dict):
+            fields = []
+            # Sort keys to ensure consistent field order
+            sorted_items = sorted(feature.feature.items())
+            for sub_name, sub_feature in sorted_items:
+                new_name = f"{name}_{sub_name}"
+                self._expansion_map[new_name] = (name, sub_name, "list_of_dicts")
+                # The sub-feature is now a list of the original sub-feature's type
+                list_of_sub_feature = Sequence(feature=sub_feature)
+                fields.append(self._convert_feature_to_arrow_field(new_name, list_of_sub_feature))
+            return fields
         else:
             return [self._convert_feature_to_arrow_field(name, feature)]
 

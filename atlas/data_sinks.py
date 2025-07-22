@@ -121,3 +121,5 @@ def sink(
     # Pass the remaining kwargs to the LanceDataSink
     sink = LanceDataSink(path=uri, mode=mode, **kwargs)
     sink.write(data, task=task, format=format, **dataset_kwargs)
+
+    return uri
