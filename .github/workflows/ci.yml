@@ -21,6 +21,15 @@ jobs:
           python examples/object_detection_coco.py
           python examples/object_detection_yolo.py
           python examples/segmentation_coco.py
+          python examples/tabular_csv.py
+          python examples/tabular_parquet.py
+          python examples/text_dataset.py
+          python examples/cot_dataset.py
+          python examples/instruction_dataset.py
+          python examples/paired_text_dataset.py
+          python examples/ranking_dataset.py
+          python examples/similarity_dataset.py
+          python examples/vision_language_dataset.py
           python examples/hf_sink/audio_dataset.py
           python examples/hf_sink/audio_text_dataset.py
           python examples/hf_sink/coco_hf_dataset.py

@@ -70,6 +70,8 @@ def infer_dataset_type(data: str) -> Tuple[Optional[str], Optional[str]]:
                     return "cot", "cot"
                 elif "sentence1" in record and "sentence2" in record and "label" in record:
                     return "paired_text", "paired_text"
+                elif "sentence1" in record and "sentence2" in record and "similarity_score" in record:
+                    return "similarity", "similarity"
             except json.JSONDecodeError:
                 pass  # Not a valid jsonl file
 
