@@ -43,7 +43,7 @@ def main():
     # --- Create a vector index on the 'image' column ---
     print("\nCreating vector index...")
     #idx.create_index("image", "vector")
-    idx.create_index()
+    idx.create_index(column="pixel_values", index_type="vector")
     print("Vector index created.")
 
     # --- List indexes again to see the new indexes ---

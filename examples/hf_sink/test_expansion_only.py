@@ -14,7 +14,7 @@ print("Dataset loaded.")
 # 2. Instantiate HFDataset with expansion enabled
 # The Hermes-3-Dataset has a 'conversations' column which is a list of dicts.
 # Per the new logic, this should NOT be expanded.
-hf_dataset = HFDataset(dataset, expand_level=1)
+hf_dataset = HFDataset(dataset)
 
 # 3. Ingest data
 output_dir = "text_hf_not_expanded.lance"

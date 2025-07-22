@@ -59,12 +59,14 @@ class HFDataset(BaseDataset):
         define the schema. The former handles expansion of nested features, while the latter handles the
         conversion of individual features to Arrow fields.
         """
-        # Only expand if the feature is a dictionary. Do not expand lists of dicts.
+        # Expand dicts
         if expand_level > 0 and isinstance(feature, dict):
             fields = []
-            for sub_name, sub_feature in feature.items():
+            # Sort keys to ensure consistent field order
+            sorted_items = sorted(feature.items())
+            for sub_name, sub_feature in sorted_items:
                 new_name = f"{name}_{sub_name}"
-                self._expansion_map[new_name] = (name, sub_name)
+                self._expansion_map[new_name] = (name, sub_name, "dict")
                 fields.extend(self._convert_feature_to_arrow_fields(new_name, sub_feature, expand_level - 1))
             return fields
         else:
@@ -86,9 +88,18 @@ class HFDataset(BaseDataset):
             return pa.field(name, pa.list_(self._convert_feature_to_arrow_field("item", feature.feature).type))
         # For a dict, recursively call this function for each value to create a struct.
         if isinstance(feature, dict):
-            return pa.field(name, pa.struct([self._convert_feature_to_arrow_field(k, v) for k, v in feature.items()]))
+            # Sort keys to ensure consistent field order
+            sorted_items = sorted(feature.items())
+            return pa.field(name, pa.struct([self._convert_feature_to_arrow_field(k, v) for k, v in sorted_items]))
         # For a list, recursively call this function on the first element to determine the list type.
         if isinstance(feature, list):
+            # Sort keys if the elements are dicts to ensure consistent field order
+            if feature and isinstance(feature[0], dict):
+                 # This path is tricky, assuming all dicts in list have same structure
+                 # and sorting keys of first element is representative
+                sorted_items = sorted(feature[0].items())
+                struct_type = pa.struct([self._convert_feature_to_arrow_field(k, v) for k, v in sorted_items])
+                return pa.field(name, pa.list_(struct_type))
             return pa.field(name, pa.list_(self._convert_feature_to_arrow_field("item", feature[0]).type))
         raise ValueError(f"Unsupported feature type for column '{name}': {feature}")
 
@@ -144,7 +155,8 @@ class HFDataset(BaseDataset):
                     new_list = []
                     for item_dict in list_of_dicts:
                         new_dict = {}
-                        for k, v in item_dict.items():
+                        sorted_items = sorted(item_dict.items())
+                        for k, v in sorted_items:
                             sub_feature = feature.feature[k]
                             if isinstance(sub_feature, ClassLabel) and v is not None:
                                 new_dict[k] = sub_feature.int2str(v)
@@ -171,13 +183,29 @@ class HFDataset(BaseDataset):
                 arrays = []
                 for field in schema:
                     if field.name in self._expansion_map:
-                        original_name, sub_name = self._expansion_map[field.name]
+                        original_name, sub_name, expansion_type = self._expansion_map[field.name]
                         original_feature = self.data.features[original_name]
-                        
-                        if isinstance(original_feature, dict):
+
+                        if expansion_type == "dict":
                             sub_feature = original_feature[sub_name]
                             column_data = [row.get(sub_name) if row else None for row in batch[original_name]]
                             processed_data = self._process_column(pa.array(column_data), sub_feature)
+                            arrays.append(pa.array(processed_data, type=field.type))
+                            continue
+                        elif expansion_type == "list_of_dicts":
+                            sub_feature = original_feature.feature[sub_name]
+                            processed_data = []
+                            for list_of_dicts in batch[original_name]:
+                                if list_of_dicts is None:
+                                    processed_data.append(None)
+                                    continue
+                                sub_list = [d.get(sub_name) if d else None for d in list_of_dicts]
+                                processed_data.append(sub_list)
+                            
+                            # Manually handle ClassLabel in list of dicts after expansion
+                            if isinstance(sub_feature, ClassLabel):
+                                processed_data = [[sub_feature.int2str(v) if v is not None else None for v in sub_list] if sub_list is not None else None for sub_list in processed_data]
+
                             arrays.append(pa.array(processed_data, type=field.type))
                             continue
 
@@ -193,10 +221,10 @@ class HFDataset(BaseDataset):
                 arrays = []
                 for field in schema:
                     if field.name in self._expansion_map:
-                        original_name, sub_name = self._expansion_map[field.name]
+                        original_name, sub_name, expansion_type = self._expansion_map[field.name]
                         original_feature = self.data.features[original_name]
-                        
-                        if isinstance(original_feature, dict):
+
+                        if expansion_type == "dict":
                             column_data = batch[original_name]
                             if isinstance(column_data, pa.ChunkedArray):
                                 column_data = column_data.combine_chunks()
@@ -205,6 +233,24 @@ class HFDataset(BaseDataset):
                             sub_feature = original_feature[sub_name]
                             
                             processed_data = self._process_column(sub_column_data, sub_feature)
+                            arrays.append(pa.array(processed_data, type=field.type))
+                            continue
+                        elif expansion_type == "list_of_dicts":
+                            column_data = batch[original_name]
+                            if isinstance(column_data, pa.ChunkedArray):
+                                column_data = column_data.combine_chunks()
+
+                            # Extract sub-list from list of structs
+                            sub_lists = []
+                            for struct_list in column_data.to_pylist():
+                                if struct_list is None:
+                                    sub_lists.append(None)
+                                    continue
+                                sub_list = [d[sub_name] if d and sub_name in d else None for d in struct_list]
+                                sub_lists.append(sub_list)
+
+                            sub_feature = original_feature.feature[sub_name]
+                            processed_data = self._process_column(pa.array(sub_lists), Sequence(feature=sub_feature))
                             arrays.append(pa.array(processed_data, type=field.type))
                             continue
 

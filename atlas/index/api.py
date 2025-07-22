@@ -73,6 +73,16 @@ class Indexer:
             **kwargs: Additional keyword arguments for index creation.
         """
         if index_type == "vector":
+            # If the column to be indexed is the same as the vector column,
+            # it means we are indexing pre-computed vectors.
+            if column == vector_column_name:
+                 print(f"Creating vector index on pre-computed vectors in column '{column}'...")
+                 self.table.create_index(
+                    vector_column_name=column,
+                    **kwargs
+                 )
+                 return
+
             modality = self._get_modality(column)
             if model is None:
                 vectorizer = Vectorizer(modality=modality)
@@ -120,10 +130,7 @@ class Indexer:
 
         schema = self.table.schema
         
-        print("--- DEBUG: Raw indices ---")
         indices = self.table.list_indices()
-        print(indices)
-        print("--- END DEBUG ---")
 
         try:
             indexed_columns = {
