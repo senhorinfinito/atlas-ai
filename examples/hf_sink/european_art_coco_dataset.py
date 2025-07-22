@@ -2,9 +2,12 @@ import os
 import shutil
 import atlas
 from datasets import load_dataset
+from atlas.tasks.hf.hf import HFDataset
+import lance
 
 def main():
     # Define paths
+    output_dir = "european_art_coco.lance"
     db_path = "lancedb"
     
     # Clean up previous runs
@@ -12,33 +15,46 @@ def main():
         shutil.rmtree(db_path)
     os.makedirs(db_path, exist_ok=True)
 
-    try:
-        print("Loading one data point for inspection...")
-        # Load a single row to inspect its structure
-        base_dataset = load_dataset("biglam/european_art_coco_loaded", split="train[:1]")
-        print("Dataset loaded.")
+    print("Loading dataset...")
+    # Load a small, fixed number of rows without streaming for speed
+    base_dataset = load_dataset("biglam/european_art_coco_loaded", split="train[:20]", stream=True)
+    print("Dataset loaded.")
 
-        # --- DIAGNOSTIC STEP ---
-        print("\n--- Inspecting the 'image' field from a single data point ---")
-        for example in base_dataset:
-            image_data = example['image']
-            print(f"Type of 'image' field: {type(image_data)}")
-            print(f"Value of 'image' field (first 100 bytes): {str(image_data)[:100]}...")
-            
-            # Check if it's a dict with 'bytes'
-            if isinstance(image_data, dict):
-                print(f"Keys in image dict: {image_data.keys()}")
+    # --- Print initial schema ---
+    print("\n--- Initial Hugging Face Schema (Pre-Expansion) ---")
+    # Must instantiate HFDataset to inspect the schema Atlas will generate
+    hf_dataset = HFDataset(base_dataset, expand_level=1)
+    print(hf_dataset.schema)
+    print("-------------------------------------------------")
 
-            # Check if it's a PIL Image by checking for a 'format' attribute
-            if hasattr(image_data, 'format'):
-                print(f"Object appears to be a PIL Image. Format: {image_data.format}")
-            break
-        print("-----------------------------------------------------------")
+    # --- Sink the data ---
+    print("\nSinking data...")
+    lance_file_path = os.path.join(db_path, output_dir)
+    atlas.sink(hf_dataset, lance_file_path)
+    print("Sinking complete.")
 
-    finally:
-        # Clean up
-        if os.path.exists(db_path):
-            shutil.rmtree(db_path)
+    # --- Verify the final schema ---
+    print("\n--- Final Lance Schema (Post-Expansion) ---")
+    output_dataset = lance.dataset(lance_file_path)
+    final_schema = output_dataset.schema
+    print(final_schema)
+    print("-------------------------------------------")
+
+    # --- Programmatic Check for Expansion ---
+    print("\n--- Verification ---")
+    # Check for fields that should exist after expansion
+    expanded_fields = {"objects_bbox", "objects_category_id", "objects_id"}
+    final_field_names = set(final_schema.names)
+    
+    if expanded_fields.issubset(final_field_names):
+        print("✅ Verification successful: 'objects' column was expanded.")
+    else:
+        print("❌ Verification failed: 'objects' column was NOT expanded.")
+        missing = expanded_fields - final_field_names
+        print(f"   Missing expanded fields: {', '.join(missing)}")
+    print("----------------------")
+    os._exit(0)
+
 
 if __name__ == "__main__":
     main()
