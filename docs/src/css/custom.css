@@ -34,3 +34,15 @@ body {
   background-color: #1f232c ;
   color: #fffefe; /* Use white text for better contrast */
 }
+
+/* ASCII box/table styling */
+pre {
+  background-color: #55464654 !important; /* darker, less bright */
+  color: #d0d0d0;
+  border: 1px solid #2a2a2a;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
