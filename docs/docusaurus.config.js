@@ -25,11 +25,11 @@ const config = {
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  url: 'https://senhorinfinito.github.io',
-  baseUrl: '/atlas-ai/',
-  projectName: 'atlas-ai',
-  organizationName: 'senhorinfinito',
-  deploymentBranch: 'features/docs',
+  // url: 'https://senhorinfinito.github.io',
+  // baseUrl: '/atlas-ai/',
+  // projectName: 'atlas-ai',
+  // organizationName: 'senhorinfinito',
+  // deploymentBranch: 'features/docs',
 
 
   // Even if you don't use internationalization, you can use this field to set
