@@ -109,6 +109,7 @@ const config = {
 
 // docusaurus.config.js
 module.exports = {
+  title: 'Atlas AI Docs', // <- REQUIRED
   url: 'https://senhorinfinito.github.io',
   baseUrl: '/atlas-ai/',
   organizationName: 'senhorinfinito',
