@@ -3,7 +3,7 @@ name: Deploy Docusaurus from `feature-docs` to GitHub Pages
 on:
   push:
     branches:
-      - feature-docs  # run deployment on push to this branch
+      - features/docs  # run deployment on push to this branch
 
 permissions:
   contents: write  # required to push to gh-pages
