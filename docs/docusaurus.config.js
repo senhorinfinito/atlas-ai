@@ -114,7 +114,7 @@ module.exports = {
   organizationName: 'senhorinfinito',
   projectName: 'atlas-ai',
   trailingSlash: false,
-  deploymentBranch: 'gh-pages',
+  // deploymentBranch: 'gh-pages',
 };
 
 
