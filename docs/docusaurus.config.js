@@ -25,6 +25,12 @@ const config = {
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
+  url: 'https://senhorinfinito.github.io',
+  baseUrl: '/atlas-ai/',
+  projectName: 'atlas-ai',
+  organizationName: 'senhorinfinito',
+  deploymentBranch: 'features/docs',
+
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -97,5 +103,19 @@ const config = {
       },
     }),
 };
+
+
+
+
+// docusaurus.config.js
+module.exports = {
+  url: 'https://senhorinfinito.github.io',
+  baseUrl: '/atlas-ai/',
+  organizationName: 'senhorinfinito',
+  projectName: 'atlas-ai',
+  trailingSlash: false,
+  deploymentBranch: 'gh-pages',
+};
+
 
 export default config;
