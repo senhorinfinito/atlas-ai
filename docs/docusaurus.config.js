@@ -29,7 +29,7 @@ const config = {
   baseUrl: '/atlas-ai/',
   projectName: 'atlas-ai',
   organizationName: 'senhorinfinito',
-  deploymentBranch: 'features/docs',
+  deploymentBranch: 'gh-pages',
 
 
   // Even if you don't use internationalization, you can use this field to set
@@ -105,18 +105,6 @@ const config = {
 };
 
 
-
-
-// docusaurus.config.js
-module.exports = {
-  title: 'Atlas AI Docs', // <- REQUIRED
-  url: 'https://senhorinfinito.github.io',
-  baseUrl: '/atlas-ai/',
-  organizationName: 'senhorinfinito',
-  projectName: 'atlas-ai',
-  trailingSlash: false,
-  deploymentBranch: 'features/docs',
-};
 
 
 export default config;
